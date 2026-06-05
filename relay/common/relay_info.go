@@ -154,15 +154,6 @@ type RelayInfo struct {
 	UseRuntimeHeadersOverride             bool
 	ParamOverrideAudit                    []string
 
-	// OriginalTools records the "tools" field from the parsed request body
-	// for logging purposes (Claude skills, function calls, MCP servers, etc.).
-	// Only populated when LOG_REQUEST_TOOLS=true.
-	OriginalTools json.RawMessage `json:"original_tools,omitempty"`
-	// OriginalMcpServers records the "mcp_servers" field from the parsed Claude
-	// request body for logging purposes.
-	// Only populated when LOG_REQUEST_TOOLS=true.
-	OriginalMcpServers json.RawMessage `json:"original_mcp_servers,omitempty"`
-
 	// UpstreamRequestBodySize is the byte size of the marshaled upstream request
 	// body. It is set when the body is wrapped in a BodyStorage (see
 	// relay/common/outbound_body.go), so that DoApiRequest can populate

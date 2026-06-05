@@ -2,8 +2,6 @@ package service
 
 import (
 	"encoding/base64"
-	"os"
-	"regexp"
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
@@ -81,7 +79,6 @@ func GenerateTextOtherInfo(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, m
 	appendBillingInfo(relayInfo, other)
 	appendParamOverrideInfo(relayInfo, other)
 	appendStreamStatus(relayInfo, other)
-	appendToolInfo(ctx, relayInfo, other)
 	return other
 }
 
@@ -284,113 +281,4 @@ func InjectTieredBillingInfo(other map[string]interface{}, relayInfo *relaycommo
 	if result != nil {
 		other["matched_tier"] = result.MatchedTier
 	}
-}
-
-// appendToolInfo records tools and MCP server names from the original request
-// into the consumption log's "other" map. Controlled by LOG_REQUEST_TOOLS env var.
-//
-// It reads tools from two sources (first wins):
-//  1. relayInfo.OriginalTools — populated by Claude handler
-//  2. gin.Context — populated by ToolExtractorMiddleware (AOP hook for all formats)
-//
-// Optional regex filtering via LOG_TOOL_FILTER_REGEX env var — only tool names
-// matching the pattern are recorded. Pattern uses Go regexp syntax.
-func appendToolInfo(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, other map[string]interface{}) {
-	if relayInfo == nil || other == nil {
-		return
-	}
-	if os.Getenv("LOG_REQUEST_TOOLS") != "true" {
-		return
-	}
-
-	// Parse optional regex filter
-	var nameFilter *regexp.Regexp
-	if pattern := os.Getenv("LOG_TOOL_FILTER_REGEX"); pattern != "" {
-		var err error
-		nameFilter, err = regexp.Compile(pattern)
-		if err != nil {
-			nameFilter = nil
-		}
-	}
-
-	names := extractToolNamesFromSources(ctx, relayInfo, nameFilter)
-	if len(names) > 0 {
-		other["tools"] = names
-		other["tool_count"] = len(names)
-	}
-
-	// MCP servers — only from relayInfo (Claude handler populates it)
-	if len(relayInfo.OriginalMcpServers) > 0 {
-		var mcpServers map[string]interface{}
-		if err := common.Unmarshal(relayInfo.OriginalMcpServers, &mcpServers); err == nil {
-			mcpNames := make([]string, 0, len(mcpServers))
-			for name := range mcpServers {
-				if nameFilter != nil && !nameFilter.MatchString(name) {
-					continue
-				}
-				mcpNames = append(mcpNames, name)
-			}
-			if len(mcpNames) > 0 {
-				other["mcp_servers"] = mcpNames
-				other["mcp_server_count"] = len(mcpNames)
-			}
-		}
-	}
-}
-
-// extractToolNamesFromSources collects tool names from relayInfo.OriginalTools
-// (set by handler) or falls back to the middleware-provided context key.
-// Returns empty slice if no tools found or none match the filter.
-func extractToolNamesFromSources(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, nameFilter *regexp.Regexp) []string {
-	// Source 1: relayInfo.OriginalTools (set by Claude handler)
-	if len(relayInfo.OriginalTools) > 0 {
-		var toolsList []interface{}
-		if err := common.Unmarshal(relayInfo.OriginalTools, &toolsList); err == nil {
-			names := make([]string, 0, len(toolsList))
-			for _, t := range toolsList {
-				if tool, ok := t.(map[string]interface{}); ok {
-					toolName := extractSingleToolName(tool)
-					if toolName == "" || (nameFilter != nil && !nameFilter.MatchString(toolName)) {
-						continue
-					}
-					names = append(names, toolName)
-				}
-			}
-			return names
-		}
-	}
-
-	// Source 2: gin.Context (set by ToolExtractorMiddleware — AOP path)
-	if ctx != nil {
-		if raw, ok := common.GetContextKey(ctx, constant.ContextKeyOriginalTools); ok {
-			if names, ok := raw.([]string); ok && len(names) > 0 {
-				if nameFilter != nil {
-					filtered := make([]string, 0, len(names))
-					for _, n := range names {
-						if nameFilter.MatchString(n) {
-							filtered = append(filtered, n)
-						}
-					}
-					return filtered
-				}
-				return names
-			}
-		}
-	}
-
-	return nil
-}
-
-// extractSingleToolName gets the name from a single tool object.
-// Supports both OpenAI format (tool.function.name) and Claude format (tool.name).
-func extractSingleToolName(tool map[string]interface{}) string {
-	if name, ok := tool["name"].(string); ok && name != "" {
-		return name
-	}
-	if fn, ok := tool["function"].(map[string]interface{}); ok {
-		if name, ok := fn["name"].(string); ok && name != "" {
-			return name
-		}
-	}
-	return ""
 }

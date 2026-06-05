@@ -66,8 +66,4 @@ const (
 	// ContextKeyLanguage stores the user's language preference for i18n
 	ContextKeyLanguage ContextKey = "language"
 	ContextKeyIsStream ContextKey = "is_stream"
-
-	// ContextKeyOriginalTools stores pre-extracted tool/skill names from the raw
-	// request body, populated by the ToolExtractor middleware for consumption log.
-	ContextKeyOriginalTools ContextKey = "original_tools"
 )
