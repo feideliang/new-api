@@ -179,6 +179,16 @@ type RelayInfo struct {
 
 	StreamStatus *StreamStatus
 
+	// OriginalTools records the "tools" field from the parsed request body
+	// for logging purposes (Claude skills, function calls, MCP servers, etc.).
+	// Only populated when LOG_REQUEST_TOOLS=true.
+	OriginalTools json.RawMessage `json:"original_tools,omitempty"`
+
+	// OriginalMcpServers records the "mcp_servers" field from the parsed Claude
+	// request body for logging purposes.
+	// Only populated when LOG_REQUEST_TOOLS=true.
+	OriginalMcpServers json.RawMessage `json:"original_mcp_servers,omitempty"`
+
 	ThinkingContentInfo
 	TokenCountMeta
 	*ClaudeConvertInfo

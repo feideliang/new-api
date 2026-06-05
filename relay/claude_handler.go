@@ -36,6 +36,16 @@ func ClaudeHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *typ
 		return types.NewError(fmt.Errorf("failed to copy request to ClaudeRequest: %w", err), types.ErrorCodeInvalidRequest, types.ErrOptionWithSkipRetry())
 	}
 
+	// Extract tools/mcp_servers from original request for consumption log
+	if claudeReq.Tools != nil {
+		if toolsJson, err := common.Marshal(claudeReq.Tools); err == nil {
+			info.OriginalTools = toolsJson
+		}
+	}
+	if len(claudeReq.McpServers) > 0 {
+		info.OriginalMcpServers = claudeReq.McpServers
+	}
+
 	err = helper.ModelMappedHelper(c, info, request)
 	if err != nil {
 		return types.NewError(err, types.ErrorCodeChannelModelMappedError, types.ErrOptionWithSkipRetry())

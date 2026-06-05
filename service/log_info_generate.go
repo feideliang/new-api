@@ -2,6 +2,8 @@ package service
 
 import (
 	"encoding/base64"
+	"os"
+	"regexp"
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
@@ -79,6 +81,7 @@ func GenerateTextOtherInfo(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, m
 	appendBillingInfo(relayInfo, other)
 	appendParamOverrideInfo(relayInfo, other)
 	appendStreamStatus(relayInfo, other)
+	appendToolInfo(ctx, relayInfo, other)
 	return other
 }
 
@@ -281,4 +284,102 @@ func InjectTieredBillingInfo(other map[string]interface{}, relayInfo *relaycommo
 	if result != nil {
 		other["matched_tier"] = result.MatchedTier
 	}
+}
+
+// appendToolInfo extracts tool/skill names from the request and stores them
+// in the other map for consumption log. Controlled by LOG_REQUEST_TOOLS env.
+func appendToolInfo(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, other map[string]interface{}) {
+	if relayInfo == nil || other == nil {
+		return
+	}
+	if os.Getenv("LOG_REQUEST_TOOLS") != "true" {
+		return
+	}
+	var nameFilter *regexp.Regexp
+	if pattern := os.Getenv("LOG_TOOL_FILTER_REGEX"); pattern != "" {
+		nameFilter, _ = regexp.Compile(pattern)
+	}
+
+	names := extractToolNamesFromSources(ctx, relayInfo, nameFilter)
+	if len(names) > 0 {
+		other["tools"] = names
+		other["tool_count"] = len(names)
+	}
+
+	// MCP servers (only from Claude handler path)
+	if len(relayInfo.OriginalMcpServers) > 0 {
+		var mcpServers []any
+		if err := common.Unmarshal(relayInfo.OriginalMcpServers, &mcpServers); err == nil {
+			mcpNames := make([]string, 0, len(mcpServers))
+			for _, s := range mcpServers {
+				if m, ok := s.(map[string]any); ok {
+					if name, ok := m["name"].(string); ok && name != "" {
+						if nameFilter == nil || nameFilter.MatchString(name) {
+							mcpNames = append(mcpNames, name)
+						}
+					}
+				}
+			}
+			if len(mcpNames) > 0 {
+				other["mcp_servers"] = mcpNames
+				other["mcp_server_count"] = len(mcpNames)
+			}
+		}
+	}
+}
+
+// extractToolNamesFromSources reads tool names from two sources with priority:
+// Source 1 (priority): relayInfo.OriginalTools (Claude handler native parse)
+// Source 2 (fallback): Gin Context (middleware AOP path)
+func extractToolNamesFromSources(ctx *gin.Context, info *relaycommon.RelayInfo, filter *regexp.Regexp) []string {
+	// Source 1: relayInfo.OriginalTools (Claude handler native)
+	if info != nil && len(info.OriginalTools) > 0 {
+		var tools []any
+		if err := common.Unmarshal(info.OriginalTools, &tools); err == nil {
+			names := make([]string, 0, len(tools))
+			for _, t := range tools {
+				if m, ok := t.(map[string]any); ok {
+					name := extractSingleToolName(m)
+					if name != "" && (filter == nil || filter.MatchString(name)) {
+						names = append(names, name)
+					}
+				}
+			}
+			return names
+		}
+	}
+	// Source 2: Gin Context (middleware AOP path)
+	if ctx != nil {
+		if raw, exists := ctx.Get(string(constant.ContextKeyOriginalTools)); exists {
+			if names, ok := raw.([]string); ok {
+				if filter == nil {
+					return names
+				}
+				filtered := make([]string, 0, len(names))
+				for _, n := range names {
+					if filter.MatchString(n) {
+						filtered = append(filtered, n)
+					}
+				}
+				return filtered
+			}
+		}
+	}
+	return nil
+}
+
+// extractSingleToolName extracts the tool name from a tool object map.
+// Supports Claude format (tool["name"]) and OpenAI format (tool["function"]["name"]).
+func extractSingleToolName(tool map[string]interface{}) string {
+	// Claude format: tool["name"]
+	if name, ok := tool["name"].(string); ok && name != "" {
+		return name
+	}
+	// OpenAI format: tool["function"]["name"]
+	if fn, ok := tool["function"].(map[string]interface{}); ok {
+		if name, ok := fn["name"].(string); ok && name != "" {
+			return name
+		}
+	}
+	return ""
 }
