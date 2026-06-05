@@ -29,6 +29,7 @@ import {
   ShieldCheck,
   UserCog,
   Info,
+  Wrench,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { formatBillingCurrencyFromUSD } from '@/lib/currency'
@@ -981,6 +982,38 @@ export function DetailsDialog(props: DetailsDialogProps) {
                     value={`${formatLogQuota(other.subscription_remain)}${other.subscription_total != null ? ` / ${formatLogQuota(other.subscription_total)}` : ''}`}
                     mono
                   />
+                )}
+              </DetailSection>
+            )}
+
+            {/* Tool / Skill usage */}
+            {other?.tools && other.tools.length > 0 && (
+              <DetailSection
+                icon={<Wrench className='size-3.5' aria-hidden='true' />}
+                label={`${t('Tools / Skills')} (${other.tool_count ?? other.tools.length})`}
+              >
+                {other.tools.map((name, idx) => (
+                  <DetailRow
+                    key={idx}
+                    label={`#${idx + 1}`}
+                    value={name}
+                    mono
+                  />
+                ))}
+                {other?.mcp_servers && other.mcp_servers.length > 0 && (
+                  <>
+                    <div className='col-span-2 border-t pt-2 mt-2 mb-1 text-xs text-muted-foreground'>
+                      {t('MCP Servers')} ({other.mcp_server_count ?? other.mcp_servers.length})
+                    </div>
+                    {other.mcp_servers.map((name, idx) => (
+                      <DetailRow
+                        key={`mcp-${idx}`}
+                        label={`MCP #${idx + 1}`}
+                        value={name}
+                        mono
+                      />
+                    ))}
+                  </>
                 )}
               </DetailSection>
             )}

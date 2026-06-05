@@ -150,6 +150,38 @@ func GetLogsSelfStat(c *gin.Context) {
 	return
 }
 
+func GetToolUsageStat(c *gin.Context) {
+	startTimestamp, _ := strconv.ParseInt(c.Query("start_timestamp"), 10, 64)
+	endTimestamp, _ := strconv.ParseInt(c.Query("end_timestamp"), 10, 64)
+	username := c.Query("username")
+	stats, err := model.SumToolUsage(startTimestamp, endTimestamp, username)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "",
+		"data":    stats,
+	})
+}
+
+func GetToolUsageSelfStat(c *gin.Context) {
+	username := c.GetString("username")
+	startTimestamp, _ := strconv.ParseInt(c.Query("start_timestamp"), 10, 64)
+	endTimestamp, _ := strconv.ParseInt(c.Query("end_timestamp"), 10, 64)
+	stats, err := model.SumToolUsage(startTimestamp, endTimestamp, username)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	c.JSON(200, gin.H{
+		"success": true,
+		"message": "",
+		"data":    stats,
+	})
+}
+
 func DeleteHistoryLogs(c *gin.Context) {
 	targetTimestamp, _ := strconv.ParseInt(c.Query("target_timestamp"), 10, 64)
 	if targetTimestamp == 0 {

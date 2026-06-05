@@ -553,3 +553,63 @@ func DeleteOldLog(ctx context.Context, targetTimestamp int64, limit int) (int64,
 
 	return total, nil
 }
+
+type ToolUsageStat struct {
+	ToolName  string `json:"tool_name"`
+	CallCount int    `json:"call_count"`
+}
+
+func SumToolUsage(startTimestamp int64, endTimestamp int64, username string) ([]ToolUsageStat, error) {
+	tx := LOG_DB.Table("logs").Where("type = ?", LogTypeConsume).
+		Where("other != ''").Where("other LIKE ?", "%\"tools\"%")
+	if startTimestamp != 0 {
+		tx = tx.Where("created_at >= ?", startTimestamp)
+	}
+	if endTimestamp != 0 {
+		tx = tx.Where("created_at <= ?", endTimestamp)
+	}
+	if username != "" {
+		tx = tx.Where("username = ?", username)
+	}
+
+	var logs []Log
+	if err := tx.Find(&logs).Error; err != nil {
+		return nil, err
+	}
+
+	// Aggregate tool names in Go
+	toolCounts := make(map[string]int)
+	for _, l := range logs {
+		var otherMap map[string]interface{}
+		if err := common.UnmarshalJsonStr(l.Other, &otherMap); err != nil {
+			continue
+		}
+		tools, ok := otherMap["tools"]
+		if !ok {
+			continue
+		}
+		toolList, ok := tools.([]interface{})
+		if !ok {
+			continue
+		}
+		for _, t := range toolList {
+			if name, ok := t.(string); ok && name != "" {
+				toolCounts[name]++
+			}
+		}
+	}
+
+	result := make([]ToolUsageStat, 0, len(toolCounts))
+	for name, count := range toolCounts {
+		result = append(result, ToolUsageStat{ToolName: name, CallCount: count})
+	}
+	// Sort by count descending
+	for i := 0; i < len(result); i++ {
+		for j := i + 1; j < len(result); j++ {
+			if result[j].CallCount > result[i].CallCount {
+				result[i], result[j] = result[j], result[i]
+			}
+		}
+	}
+	return result, nil
+}

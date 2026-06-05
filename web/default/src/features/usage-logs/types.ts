@@ -28,7 +28,7 @@ import type { UsageLog } from './data/schema'
 /**
  * Log category for different log types
  */
-export type LogCategory = 'common' | 'drawing' | 'task'
+export type LogCategory = 'common' | 'drawing' | 'task' | 'tools'
 
 // ============================================================================
 // Filter Types
@@ -189,6 +189,11 @@ export interface LogOtherData {
   subscription_consumed?: number
   subscription_remain?: number
   subscription_total?: number
+  // Tool / Skill usage fields (populated when LOG_REQUEST_TOOLS=true)
+  tools?: string[]
+  tool_count?: number
+  mcp_servers?: string[]
+  mcp_server_count?: number
 }
 
 /**
@@ -198,6 +203,16 @@ export interface LogStatistics {
   quota: number
   rpm: number
   tpm: number
+}
+
+export interface ToolUsageStat {
+  tool_name: string
+  call_count: number
+}
+
+export interface GetToolStatsParams {
+  start_timestamp?: number
+  end_timestamp?: number
 }
 
 // ============================================================================

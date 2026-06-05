@@ -1774,7 +1774,7 @@
     "footer.columns.related.links.oneApi": "One API",
     "footer.columns.related.title": "相关项目",
     "footer.defaultCopyright": "版权所有。",
-    "footer.new\u0061pi.projectAttributionSuffix": "版权所有，由项目贡献者设计与开发。",
+    "footer.newapi.projectAttributionSuffix": "版权所有，由项目贡献者设计与开发。",
     "For channels added after May 10, 2025, no need to remove \".\" from model names during deployment": "对于 2025 年 5 月 10 日之后添加的渠道，在部署时无需从模型名称中移除 \".\"",
     "For private deployments, format: https://fastgpt.run/api/openapi": "对于私有部署，格式为：https://fastgpt.run/api/openapi",
     "Force a syntactically valid JSON response": "强制返回语法合法的 JSON",
@@ -4523,5 +4523,18 @@
     "Zhipu": "智谱",
     "Zhipu V4": "智谱 V4",
     "Zoom": "缩放"
-  }
+  },
+  "Tool Usage": "工具统计",
+  "Tools / Skills": "工具 / 技能",
+  "Tool / Skill Name": "工具/技能名称",
+  "Call Count": "调用次数",
+  "Skill Usage Statistics": "技能调用统计",
+  "calls": "次调用",
+  "No tool usage data found. Enable LOG_REQUEST_TOOLS=true and send requests with tools.": "未找到工具使用数据。请设置 LOG_REQUEST_TOOLS=true 并发送带有 tools 的请求。",
+  "Total": "总计",
+  "MCP Servers": "MCP 服务器",
+  "Query": "查询",
+  "Proportion": "占比",
+  "Refresh": "刷新",
+  "Last 7 days": "最近7天"
 }

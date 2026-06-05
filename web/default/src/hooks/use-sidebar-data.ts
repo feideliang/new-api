@@ -88,6 +88,11 @@ export function useSidebarData(): SidebarData {
             icon: FileText,
           },
           {
+            title: t('Tool Usage'),
+            url: '/usage-logs/tools',
+            icon: Wrench,
+          },
+          {
             title: t('Task Logs'),
             url: '/usage-logs/task',
             activeUrls: ['/usage-logs/drawing'],
