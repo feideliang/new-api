@@ -28,7 +28,7 @@ import type { UsageLog } from './data/schema'
 /**
  * Log category for different log types
  */
-export type LogCategory = 'common' | 'drawing' | 'task' | 'tools'
+export type LogCategory = 'common' | 'drawing' | 'task'
 
 // ============================================================================
 // Filter Types

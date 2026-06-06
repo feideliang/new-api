@@ -4536,5 +4536,14 @@
   "Query": "查询",
   "Proportion": "占比",
   "Refresh": "刷新",
-  "Last 7 days": "最近7天"
+  "Last 7 days": "最近7天",
+  "Total Calls": "总调用次数",
+  "Unique Tools": "工具数量",
+  "Top Tool": "最常用工具",
+  "Top Tool Share": "最高占比",
+  "Failed to load data": "数据加载失败",
+  "Retry": "重试",
+  "All time": "全部时间",
+  "Last 30 days": "最近30天",
+  "Last 90 days": "最近90天"
 }

@@ -90,7 +90,7 @@ export function useSidebarData(): SidebarData {
           },
           {
             title: t('Tool Usage'),
-            url: '/usage-logs/tools',
+            url: '/console/tool-stats',
             icon: Wrench,
           },
           {

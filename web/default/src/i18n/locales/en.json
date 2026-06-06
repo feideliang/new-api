@@ -4536,5 +4536,14 @@
   "Query": "Query",
   "Proportion": "Proportion",
   "Refresh": "Refresh",
-  "Last 7 days": "Last 7 days"
+  "Last 7 days": "Last 7 days",
+  "Total Calls": "Total Calls",
+  "Unique Tools": "Unique Tools",
+  "Top Tool": "Top Tool",
+  "Top Tool Share": "Top Tool Share",
+  "Failed to load data": "Failed to load data",
+  "Retry": "Retry",
+  "All time": "All time",
+  "Last 30 days": "Last 30 days",
+  "Last 90 days": "Last 90 days"
 }

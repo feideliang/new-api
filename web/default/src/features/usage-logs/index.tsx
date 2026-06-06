@@ -30,7 +30,6 @@ import {
   useUsageLogsContext,
 } from './components/usage-logs-provider'
 import { UsageLogsTable } from './components/usage-logs-table'
-import { ToolUsageStats } from './components/tool-usage-stats'
 import {
   isUsageLogsSectionId,
   USAGE_LOGS_DEFAULT_SECTION,
@@ -49,9 +48,6 @@ const SECTION_META: Record<UsageLogsSectionId, { titleKey: string }> = {
   },
   task: {
     titleKey: 'Task Logs',
-  },
-  tools: {
-    titleKey: 'Tool Usage',
   },
 }
 
@@ -131,11 +127,7 @@ function UsageLogsContent() {
                 </TabsList>
               </Tabs>
             )}
-            {activeCategory === 'tools' ? (
-              <ToolUsageStats />
-            ) : (
-              <UsageLogsTable logCategory={activeCategory} />
-            )}
+            <UsageLogsTable logCategory={activeCategory} />
           </div>
         </SectionPageLayout.Content>
       </SectionPageLayout>
