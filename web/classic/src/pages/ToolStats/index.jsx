@@ -17,12 +17,12 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Card, Table, Select, Button, Empty, Banner } from '@douyinfe/semi-ui';
-import { RefreshCw, Wrench, Hash, BarChart3, Trophy, ListOrdered, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Card, Table, Select, Button, Typography, Space, Toast } from '@douyinfe/semi-ui';
 import { API } from '../../helpers';
 import { useTranslation } from 'react-i18next';
 
+const { Text, Title } = Typography;
 const { Option } = Select;
 
 const TIME_RANGES = [
@@ -32,16 +32,14 @@ const TIME_RANGES = [
   { value: 'all', label: '全部时间', seconds: 0 },
 ];
 
-export default function ToolStats() {
+const ToolStats = () => {
   const { t } = useTranslation();
   const [stats, setStats] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
   const [timeRange, setTimeRange] = useState('7d');
 
-  const fetchStats = useCallback(async (range) => {
+  const fetchStats = async (range) => {
     setLoading(true);
-    setError(false);
     try {
       const now = Math.floor(Date.now() / 1000);
       const rangeConfig = TIME_RANGES.find((r) => r.value === range);
@@ -53,26 +51,22 @@ export default function ToolStats() {
         setStats(res.data.data);
       } else {
         setStats([]);
-        setError(true);
+        Toast.warning(res.data?.message || '获取数据失败');
       }
     } catch (err) {
       console.error('Failed to fetch tool stats:', err);
       setStats([]);
-      setError(true);
+      Toast.error('数据加载失败');
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
   useEffect(() => {
     fetchStats(timeRange);
-  }, [timeRange, fetchStats]);
+  }, [timeRange]);
 
-  const totalCount = useMemo(
-    () => stats.reduce((sum, s) => sum + s.call_count, 0),
-    [stats]
-  );
-
+  const totalCount = stats.reduce((sum, s) => sum + s.call_count, 0);
   const uniqueTools = stats.length;
   const topTool = stats[0];
   const topToolProportion = topTool && totalCount > 0
@@ -85,24 +79,16 @@ export default function ToolStats() {
       dataIndex: 'index',
       key: 'index',
       width: 80,
-      render: (text, record, index) => {
-        const colors = ['bg-amber-100 text-amber-700', 'bg-slate-200 text-slate-700', 'bg-orange-100 text-orange-700'];
-        const colorClass = index < 3 ? colors[index] : '';
-        return (
-          <span className={`inline-flex size-5 items-center justify-center rounded text-[11px] font-bold ${colorClass}`}>
-            {index + 1}
-          </span>
-        );
-      },
+      render: (text, record, index) => (
+        <Text strong>{index + 1}</Text>
+      ),
     },
     {
       title: t('工具 / 技能名称'),
       dataIndex: 'tool_name',
       key: 'tool_name',
       render: (text) => (
-        <span className="font-mono text-sm font-medium truncate max-w-[400px]">
-          {text}
-        </span>
+        <Text strong copyable>{text}</Text>
       ),
     },
     {
@@ -112,195 +98,97 @@ export default function ToolStats() {
       width: 150,
       align: 'right',
       render: (text) => (
-        <span className="font-mono text-sm tabular-nums">
-          {text.toLocaleString()}
-        </span>
+        <Text type="tertiary">{text?.toLocaleString()}</Text>
       ),
     },
     {
       title: t('占比'),
       dataIndex: 'proportion',
       key: 'proportion',
-      width: 200,
+      width: 120,
       align: 'right',
       render: (text, record) => {
         const proportion = totalCount > 0 ? (record.call_count / totalCount) * 100 : 0;
-        return (
-          <span className="inline-flex items-center gap-1.5">
-            <span className="font-mono text-xs tabular-nums">
-              {proportion.toFixed(1)}%
-            </span>
-            <span className="bg-primary/20 h-1.5 w-12 overflow-hidden rounded-full">
-              <span
-                className="bg-primary block h-full rounded-full"
-                style={{ width: `${Math.min(proportion, 100)}%` }}
-              />
-            </span>
-          </span>
-        );
+        return <Text type="tertiary">{proportion.toFixed(1)}%</Text>;
       },
     },
   ];
 
-  const StatCard = ({ icon: Icon, title, value, description }) => (
-    <Card className="h-full rounded-xl border shadow-xs">
-      <div className="flex min-h-32 flex-col justify-between gap-3">
-        <div className="flex items-start justify-between gap-1">
-          <div className="text-muted-foreground flex items-center gap-1.5 text-xs font-medium">
-            <Icon className="size-3.5 shrink-0" />
-            <span className="line-clamp-2 leading-snug">{title}</span>
-          </div>
-        </div>
-        <div className="flex flex-col gap-1">
-          <div className="text-foreground font-mono text-2xl font-semibold tracking-tight break-all tabular-nums">
-            {value}
-          </div>
-          <p className="text-muted-foreground/60 text-xs leading-relaxed">
-            {description}
-          </p>
-        </div>
-      </div>
-    </Card>
-  );
-
   return (
-    <div className="flex flex-col gap-6 p-6">
-      {/* Page Header */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2">
-          <span className="bg-muted flex size-8 shrink-0 items-center justify-center rounded-lg">
-            <Wrench className="size-4" />
-          </span>
-          <div className="min-w-0">
-            <h1 className="text-xl font-semibold tracking-tight">
-              {t('技能调用统计')}
-            </h1>
-            <p className="text-muted-foreground line-clamp-1 text-sm">
-              {t('工具 / 技能调用统计')}
-            </p>
-          </div>
+    <div className="mt-[60px] px-6">
+      <Space vertical align="start" style={{ width: '100%' }} spacing={24}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+          <Title heading={4} style={{ margin: 0 }}>{t('技能调用统计')}</Title>
+          <Space>
+            <Select value={timeRange} onChange={(v) => setTimeRange(v)} style={{ width: 130 }}>
+              {TIME_RANGES.map((r) => (
+                <Option key={r.value} value={r.value}>{r.label}</Option>
+              ))}
+            </Select>
+            <Button theme="light" onClick={() => fetchStats(timeRange)} loading={loading}>
+              {t('刷新')}
+            </Button>
+          </Space>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <Select
-            value={timeRange}
-            onChange={(v) => setTimeRange(v)}
-            style={{ width: 130 }}
-          >
-            {TIME_RANGES.map((r) => (
-              <Option key={r.value} value={r.value}>
-                {t(r.label)}
-              </Option>
-            ))}
-          </Select>
-          <Button
-            icon={<RefreshCw className={`size-3.5 ${loading ? 'animate-spin' : ''}`} />}
-            onClick={() => fetchStats(timeRange)}
-            disabled={loading}
-          >
-            {loading ? t('加载中...') : t('刷新')}
-          </Button>
-        </div>
-      </div>
 
-      {/* Summary Stat Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          icon={Hash}
-          title={t('总调用次数')}
-          value={loading ? '...' : totalCount.toLocaleString()}
-          description={t('选定时间段内的总调用次数')}
-        />
-        <StatCard
-          icon={BarChart3}
-          title={t('工具数量')}
-          value={loading ? '...' : uniqueTools.toLocaleString()}
-          description={t('不同的工具或技能数量')}
-        />
-        <StatCard
-          icon={Trophy}
-          title={t('最常用工具')}
-          value={loading || !topTool ? '—' : topTool.tool_name}
-          description={
-            topTool
-              ? `${topTool.call_count.toLocaleString()} ${t('次调用')}`
-              : t('暂无数据')
+        {/* Summary Cards */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', width: '100%' }}>
+          <Card>
+            <Text type="tertiary" size="small">{t('总调用次数')}</Text>
+            <Title heading={3} style={{ marginTop: 8, marginBottom: 0 }}>
+              {loading ? '...' : totalCount.toLocaleString()}
+            </Title>
+          </Card>
+          <Card>
+            <Text type="tertiary" size="small">{t('工具数量')}</Text>
+            <Title heading={3} style={{ marginTop: 8, marginBottom: 0 }}>
+              {loading ? '...' : uniqueTools.toLocaleString()}
+            </Title>
+          </Card>
+          <Card>
+            <Text type="tertiary" size="small">{t('最常用工具')}</Text>
+            <Title heading={3} style={{ marginTop: 8, marginBottom: 0 }}>
+              {loading || !topTool ? '—' : topTool.tool_name}
+            </Title>
+          </Card>
+          <Card>
+            <Text type="tertiary" size="small">{t('最高占比')}</Text>
+            <Title heading={3} style={{ marginTop: 8, marginBottom: 0 }}>
+              {loading ? '...' : `${topToolProportion}%`}
+            </Title>
+          </Card>
+        </div>
+
+        {/* Ranking Table */}
+        <Card
+          title={t('调用次数排名')}
+          headerExtraContent={
+            totalCount > 0 && (
+              <Text type="tertiary" size="small">
+                {t('总计')}: {totalCount.toLocaleString()} {t('次调用')}
+              </Text>
+            )
           }
-        />
-        <StatCard
-          icon={ListOrdered}
-          title={t('最高占比')}
-          value={loading ? '...' : `${topToolProportion}%`}
-          description={t('最常用工具的调用占比')}
-        />
-      </div>
-
-      {/* Ranking Table */}
-      <Card
-        title={
-          <div className="flex items-center gap-2">
-            <ListOrdered className="size-4" />
-            {t('调用次数排名')}
-          </div>
-        }
-        headerExtraContent={
-          totalCount > 0 && (
-            <span className="text-muted-foreground text-xs tabular-nums">
-              {t('总计')}: {totalCount.toLocaleString()} {t('次调用')}
-            </span>
-          )
-        }
-      >
-        {loading && stats.length === 0 ? (
-          <div className="flex flex-col gap-2 p-4">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div
-                key={i}
-                className="bg-muted/40 h-10 animate-pulse rounded-lg"
-              />
-            ))}
-          </div>
-        ) : error ? (
-          <Banner
-            type="warning"
-            icon={<AlertCircle className="size-8" />}
-            description={
-              <div className="flex flex-col items-center gap-2">
-                <p>{t('数据加载失败')}</p>
-                <Button onClick={() => fetchStats(timeRange)}>
-                  {t('重试')}
-                </Button>
-              </div>
-            }
-          />
-        ) : stats.length > 0 ? (
+        >
           <Table
             columns={columns}
             dataSource={stats}
             rowKey={(record) => record.tool_name}
+            loading={loading}
             pagination={false}
-            scroll={{ y: 500 }}
-          />
-        ) : (
-          <Empty
-            image={<Wrench className="size-8 opacity-40" />}
-            description={
-              <p className="text-muted-foreground">
-                {t('未找到工具使用数据。请启用 LOG_REQUEST_TOOLS=true 并发送带有 tools 的请求。')}
-              </p>
+            empty={
+              <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                <Text type="tertiary">
+                  {t('未找到工具使用数据。请启用 LOG_REQUEST_TOOLS=true 并发送带有 tools 的请求。')}
+                </Text>
+              </div>
             }
           />
-        )}
-      </Card>
-
-      {/* Bottom summary */}
-      {stats.length > 0 && (
-        <div className="text-muted-foreground/60 flex items-center justify-center gap-1 text-xs">
-          <BarChart3 className="size-3" />
-          <span>
-            {stats.length} {t('个工具')} · {totalCount.toLocaleString()} {t('次调用')}
-          </span>
-        </div>
-      )}
+        </Card>
+      </Space>
     </div>
   );
-}
+};
+
+export default ToolStats;
