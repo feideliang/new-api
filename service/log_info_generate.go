@@ -287,12 +287,9 @@ func InjectTieredBillingInfo(other map[string]interface{}, relayInfo *relaycommo
 }
 
 // appendToolInfo extracts tool/skill names from the request and stores them
-// in the other map for consumption log. Controlled by LOG_REQUEST_TOOLS env.
+// in the other map for consumption log.
 func appendToolInfo(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, other map[string]interface{}) {
 	if relayInfo == nil || other == nil {
-		return
-	}
-	if os.Getenv("LOG_REQUEST_TOOLS") != "true" {
 		return
 	}
 	var nameFilter *regexp.Regexp

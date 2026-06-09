@@ -16,7 +16,7 @@ func init() {
 	// 初始化默认配置
 	performanceMonitorConfig.Store(PerformanceMonitorConfig{
 		Enabled:         true,
-		CPUThreshold:    90,
+		CPUThreshold:    99,
 		MemoryThreshold: 90,
 		DiskThreshold:   90,
 	})

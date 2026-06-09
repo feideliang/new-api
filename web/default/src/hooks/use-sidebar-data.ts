@@ -89,11 +89,6 @@ export function useSidebarData(): SidebarData {
             icon: FileText,
           },
           {
-            title: t('Tool Usage'),
-            url: '/console/tool-stats',
-            icon: Wrench,
-          },
-          {
             title: t('Task Logs'),
             url: '/usage-logs/task',
             activeUrls: ['/usage-logs/drawing'],
@@ -141,6 +136,11 @@ export function useSidebarData(): SidebarData {
             title: t('Redemption Codes'),
             url: '/redemption-codes',
             icon: Ticket,
+          },
+          {
+            title: t('Tool Usage'),
+            url: '/console/tool-stats',
+            icon: Wrench,
           },
           {
             title: t('Subscription Management'),

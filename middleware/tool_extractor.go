@@ -1,8 +1,6 @@
 package middleware
 
 import (
-	"os"
-
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
 
@@ -17,14 +15,8 @@ import (
 // AOP-style hook — no handler files are modified. The extracted data is
 // consumed by appendToolInfo() in service/log_info_generate.go.
 //
-// Controlled by env var LOG_REQUEST_TOOLS (must be "true" to run).
 func ToolExtractorMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if os.Getenv("LOG_REQUEST_TOOLS") != "true" {
-			c.Next()
-			return
-		}
-
 		storage, err := common.GetBodyStorage(c)
 		if err != nil {
 			c.Next()
