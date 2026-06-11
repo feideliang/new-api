@@ -29,7 +29,6 @@ import {
   ShieldCheck,
   UserCog,
   Info,
-  Wrench,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { formatBillingCurrencyFromUSD } from '@/lib/currency'
@@ -316,7 +315,6 @@ function BillingBreakdown(props: {
       {rows.map((row, idx) => (
         <DetailRow key={idx} label={row.label} value={row.value} mono />
       ))}
-                )}
     </DetailSection>
   )
 }
@@ -639,21 +637,6 @@ export function DetailsDialog(props: DetailsDialogProps) {
                       mono
                     />
                   )}
-                {other.subscription_consumed != null && (
-                  <DetailRow
-                    label={t('Final Consumed')}
-                    value={formatLogQuota(other.subscription_consumed)}
-                    mono
-                  />
-                )}
-                {other.subscription_remain != null && (
-                  <DetailRow
-                    label={t('Remaining')}
-                    value={`${formatLogQuota(other.subscription_remain)}${other.subscription_total != null ? ` / ${formatLogQuota(other.subscription_total)}` : ''}`}
-                    mono
-                  />
-                )}
-                {conversionLabel && (
                   <div className='flex min-w-0 items-center gap-1.5 text-xs'>
                     <Route
                       className='text-muted-foreground size-3'
@@ -663,96 +646,40 @@ export function DetailsDialog(props: DetailsDialogProps) {
                       {conversionLabel}
                     </span>
                   </div>
-                )}
-              </DetailSection>
-            )}
-
-            {/* Tool / Skill usage */}
-            {other?.tools && other.tools.length > 0 && (
-              <DetailSection
-                icon={<Wrench className='size-3.5' aria-hidden='true' />}
-                label={`${t('Tools / Skills')} (${other.tool_count ?? other.tools.length})`}
-              >
-                {other.tools.map((name, idx) => (
-                  <DetailRow
-                    key={idx}
-                    label={`#${idx + 1}`}
-                    value={name}
-                    mono
-                  />
-                ))}
-                {other?.mcp_servers && other.mcp_servers.length > 0 && (
-                  <>
-                    <div className='col-span-2 border-t pt-2 mt-2 mb-1 text-xs text-muted-foreground'>
-                      {t('MCP Servers')} ({other.mcp_server_count ?? other.mcp_servers.length})
-                    </div>
-                    {other.mcp_servers.map((name, idx) => (
-                      <DetailRow
-                        key={`mcp-${idx}`}
-                        label={`MCP #${idx + 1}`}
-                        value={name}
-                        mono
-                      />
-                    ))}
-                  </>
-                )}
-              </DetailSection>
-            )}
-
-            {/* Param override */}
-            {other?.po && Array.isArray(other.po) && other.po.length > 0 && (
-              <DetailSection
-                icon={<Settings2 className='size-3.5' aria-hidden='true' />}
-                label={`${t('Param Override')} (${other.po.length})`}
-              >
-                {other.po.filter(Boolean).map((line, idx) => {
-                  const parsed = parseAuditLine(line)
-                  if (!parsed) return null
-                  return (
-                    <div
-                      key={idx}
-                      className='bg-background/60 flex min-w-0 flex-col gap-1.5 rounded border p-2 sm:flex-row sm:items-start sm:gap-2'
-                    >
-                      <StatusBadge
-                        variant='neutral'
-                        label={getParamOverrideActionLabel(parsed.action, t)}
-                        className='shrink-0 font-medium'
-                        copyable={false}
-                      />
-                      <span className='min-w-0 font-mono text-[11px] leading-relaxed break-all sm:break-words'>
-                        {parsed.content}
-                      </span>
-                    </div>
-                  )
-                })}
-              </DetailSection>
-            )}
-
-            {/* Content */}
-            {details && (
-              <div className='space-y-1.5'>
-                <Label className='text-xs font-semibold'>{t('Content')}</Label>
-                <div className='bg-muted/30 relative min-w-0 overflow-hidden rounded-md border p-2.5'>
-                  <Button
-                    variant='ghost'
-                    size='sm'
-                    className='absolute top-1.5 right-1.5 h-5 w-5 p-0'
-                    onClick={() => copyToClipboard(details)}
-                    title={t('Copy to clipboard')}
-                    aria-label={t('Copy to clipboard')}
-                  >
-                    {copiedText === details ? (
-                      <Check className='size-3 text-green-600' />
-                    ) : (
-                      <Copy className='size-3' />
-                    )}
-                  </Button>
-                  <p className='min-w-0 pr-6 text-xs leading-relaxed break-all whitespace-pre-wrap sm:break-words'>
-                    {details}
-                  </p>
-                  <div className='flex min-w-0 items-center gap-1.5 text-xs'>
                 </div>
               </div>
+            </DetailSection>
+          )}
+
+          {/* Tool / Skill usage */}
+          {other?.tools && other.tools.length > 0 && (
+            <DetailSection
+              icon={<Wrench className='size-3.5' aria-hidden='true' />}
+              label={`${t('Tools / Skills')} (${other.tool_count ?? other.tools.length})`}
+            >
+              {other.tools.map((name, idx) => (
+                <DetailRow
+                  key={idx}
+                  label={`#${idx + 1}`}
+                  value={name}
+                  mono
+                />
+              ))}
+              {other?.mcp_servers && other.mcp_servers.length > 0 && (
+                <>
+                  <div className='col-span-2 border-t pt-2 mt-2 mb-1 text-xs text-muted-foreground'>
+                    {t('MCP Servers')} ({other.mcp_server_count ?? other.mcp_servers.length})
+                  </div>
+                  {other.mcp_servers.map((name, idx) => (
+                    <DetailRow
+                      key={`mcp-${idx}`}
+                      label={`MCP #${idx + 1}`}
+                      value={name}
+                      mono
+                    />
+                  ))}
+                </>
+              )}
             </DetailSection>
           )}
 
