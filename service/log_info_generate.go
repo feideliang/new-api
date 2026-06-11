@@ -369,7 +369,7 @@ func isBuiltinTool(name string) bool {
 	// Claude Code tools
 	case "Agent", "AskUserQuestion", "Bash", "CronCreate", "CronDelete",
 		"CronList", "Edit", "EnterPlanMode", "EnterWorktree", "ExitPlanMode",
-		"ExitWorktree", "Monitor", "NotebookEdit", "PushNotification", "Read",
+		"ExitWorktree", "Glob", "Grep", "LSP", "Monitor", "NotebookEdit", "PushNotification", "Read",
 		"ScheduleWakeup", "SendMessage", "Skill", "TaskCreate", "TaskGet",
 		"TaskList", "TaskOutput", "TaskStop", "TaskUpdate", "TeamCreate",
 		"TeamDelete", "TeamUpdate", "WebFetch", "WebSearch", "Workflow", "Write":
