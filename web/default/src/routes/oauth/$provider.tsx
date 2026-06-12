@@ -30,6 +30,7 @@ import { useAuthStore, type AuthUser } from '@/stores/auth-store'
 import { api, getSelf } from '@/lib/api'
 import { OAuthCallbackScreen } from '@/features/auth/components/oauth-callback-screen'
 import { OAUTH_BIND_STORAGE_KEY } from '@/features/auth/constants'
+import { OAUTH_REDIRECT_STORAGE_KEY } from '@/features/auth/hooks/use-oauth-login'
 
 type OAuthRequestConfig = AxiosRequestConfig & {
   skipBusinessError?: boolean
@@ -143,8 +144,17 @@ function OAuthCallback() {
       }
 
       const redirectAfterLogin = (target?: string) => {
-        const to = target || search?.redirect || '/dashboard'
-        safeNavigate(to)
+        // Priority: explicit target > URL search param > localStorage > /dashboard
+        let to = target || search?.redirect
+        if (!to) {
+          try {
+            to = window.localStorage.getItem(OAUTH_REDIRECT_STORAGE_KEY) || undefined
+            window.localStorage.removeItem(OAUTH_REDIRECT_STORAGE_KEY)
+          } catch (_error) {
+            // ignore storage errors
+          }
+        }
+        safeNavigate(to || '/dashboard')
         toast.success(i18next.t('Signed in successfully!'))
       }
 

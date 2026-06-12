@@ -35,6 +35,7 @@ type OAuthProvidersProps = {
   className?: string
   onWeChatLogin?: () => void
   isWeChatLoading?: boolean
+  redirectTo?: string
 }
 
 type ProviderButton = {
@@ -51,6 +52,7 @@ export function OAuthProviders({
   className,
   onWeChatLogin,
   isWeChatLoading = false,
+  redirectTo,
 }: OAuthProvidersProps) {
   const { t } = useTranslation()
   const {
@@ -81,7 +83,7 @@ export function OAuthProviders({
     providerButtons.push({
       key: 'github',
       label: githubButtonText || t('Continue with GitHub'),
-      onClick: handleGitHubLogin,
+      onClick: () => handleGitHubLogin(redirectTo),
       icon: <IconGithub className='h-4 w-4' />,
       disabled: githubButtonDisabled,
     })
@@ -91,7 +93,7 @@ export function OAuthProviders({
     providerButtons.push({
       key: 'discord',
       label: t('Continue with Discord'),
-      onClick: handleDiscordLogin,
+      onClick: () => handleDiscordLogin(redirectTo),
       icon: <IconDiscord className='h-4 w-4' />,
     })
   }
@@ -100,7 +102,7 @@ export function OAuthProviders({
     providerButtons.push({
       key: 'oidc',
       label: t('Continue with OIDC'),
-      onClick: handleOIDCLogin,
+      onClick: () => handleOIDCLogin(redirectTo),
     })
   }
 
@@ -108,7 +110,7 @@ export function OAuthProviders({
     providerButtons.push({
       key: 'linuxdo',
       label: t('Continue with LinuxDO'),
-      onClick: handleLinuxDOLogin,
+      onClick: () => handleLinuxDOLogin(redirectTo),
       icon: <IconLinuxDo className='h-4 w-4' />,
     })
   }
@@ -128,7 +130,7 @@ export function OAuthProviders({
       providerButtons.push({
         key: `custom-${provider.slug}`,
         label: t('Continue with {{name}}', { name: provider.name }),
-        onClick: () => handleCustomOAuthLogin(provider),
+        onClick: () => handleCustomOAuthLogin(provider, redirectTo),
       })
     }
   }
