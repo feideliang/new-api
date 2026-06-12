@@ -620,7 +620,7 @@ func (s *Service) UserInfo(ctx context.Context, token string) (*UserInfoResult, 
 	}
 	result := &UserInfoResult{
 		Subject:        strconv.Itoa(user.Id),
-		CodexAccountID: stableCodexAccountID(user.Id),
+		CodexAccountID: StableCodexAccountID(user.Id),
 		CodexPlanType:  CodexDefaultPlanType,
 	}
 	if containsString(scopes, "email") {
@@ -794,7 +794,7 @@ func (s *Service) signJWT(user *model.User, clientID string, scopes []string, no
 	}
 	if includeCodexClaims {
 		claims.CodexAuth = &codexAuthClaims{
-			ChatGPTAccountID: stableCodexAccountID(user.Id),
+			ChatGPTAccountID: StableCodexAccountID(user.Id),
 			ChatGPTPlanType:  CodexDefaultPlanType,
 		}
 	}
@@ -1010,7 +1010,8 @@ func tokenHash(token string) string {
 	return hex.EncodeToString(sum[:])
 }
 
-func stableCodexAccountID(userID int) string {
+// StableCodexAccountID returns a stable account identifier for Codex.
+func StableCodexAccountID(userID int) string {
 	return "user-" + strconv.Itoa(userID)
 }
 
@@ -1023,7 +1024,7 @@ func oauthEmail(user *model.User) string {
 	if username != "" {
 		return username + "@localhost"
 	}
-	return stableCodexAccountID(user.Id) + "@localhost"
+	return StableCodexAccountID(user.Id) + "@localhost"
 }
 
 func (s *Service) randomToken(prefix string) (string, error) {

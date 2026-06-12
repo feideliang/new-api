@@ -15,4 +15,17 @@ func RegisterCodexWhamRoutes(router *gin.Engine) {
 		router.POST(path, middleware.RouteTag("relay"), controller.CodexWhamAppsMCP)
 		router.DELETE(path, middleware.RouteTag("relay"), controller.CodexWhamAppsMCP)
 	}
+
+	// Profile endpoint for Codex CLI
+	for _, path := range []string{
+		"/wham/profiles/me",
+		"/backend-api/wham/profiles/me",
+		"/api/codex/profiles/me",
+	} {
+		router.GET(path,
+			middleware.RouteTag("relay"),
+			middleware.TokenAuth(),
+			controller.CodexWhamProfileMe,
+		)
+	}
 }
