@@ -1,9 +1,14 @@
 package controller
 
 import (
+	"bytes"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/sha256"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"html/template"
@@ -571,7 +576,26 @@ func oauthSigningPrivateKeyPEM() (string, error) {
 		}
 		return string(data), nil
 	}
-	return "", oauthserversvc.ErrSigningKeyRequired
+	// Auto-generate and persist in /data directory
+	autoPath := "/data/oauth-server-signing-key.pem"
+	if data, err := os.ReadFile(autoPath); err == nil && len(strings.TrimSpace(string(data))) > 0 {
+		return string(data), nil
+	}
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate OAuth signing key: %w", err)
+	}
+	pemBytes := x509.MarshalPKCS1PrivateKey(key)
+	pemBlock := &pem.Block{Type: "RSA PRIVATE KEY", Bytes: pemBytes}
+	var buf bytes.Buffer
+	if err := pem.Encode(&buf, pemBlock); err != nil {
+		return "", err
+	}
+	keyPEM := buf.String()
+	if err := os.WriteFile(autoPath, []byte(keyPEM), 0600); err != nil {
+		common.SysLog("failed to persist OAuth signing key: " + err.Error())
+	}
+	return keyPEM, nil
 }
 
 func oauthIssuer(c *gin.Context) string {
