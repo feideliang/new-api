@@ -60,6 +60,14 @@ function OAuthCallback() {
   useEffect(() => {
     ;(async () => {
       const safeNavigate = (target: string) => {
+        // For URLs with query parameters (like OAuth authorize redirect),
+        // use window.location.replace to ensure the full URL including
+        // query params is preserved and the backend handles the session correctly.
+        // TanStack Router's navigate doesn't handle query params in the `to` field.
+        if (target.includes('?')) {
+          window.location.replace(target)
+          return
+        }
         navigate({ to: target as never, replace: true })
         if (typeof window !== 'undefined') {
           setTimeout(() => {

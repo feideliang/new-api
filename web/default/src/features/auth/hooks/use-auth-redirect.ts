@@ -87,6 +87,10 @@ export function useAuthRedirect() {
 
     // Navigate to target page
     const targetPath = redirectTo || '/dashboard'
+    if (targetPath.includes('?')) {
+      window.location.href = targetPath
+      return
+    }
     navigate({ to: targetPath, replace: true })
   }
 

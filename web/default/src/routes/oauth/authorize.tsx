@@ -80,7 +80,7 @@ function OAuthAuthorize() {
           const redirect = encodeURIComponent(
             '/oauth/authorize?' + new URLSearchParams(search).toString()
           )
-          navigate({ to: `/sign-in?redirect=${redirect}` as never })
+          window.location.replace(`/sign-in?redirect=${redirect}`)
           return
         }
         const detail =

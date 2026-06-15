@@ -33,9 +33,19 @@ export const Route = createFileRoute('/(auth)/sign-in')({
 
     // 如果已经有用户信息，说明已登录
     if (auth.user) {
+      const target = search?.redirect
       // 优先使用 redirect 参数（用户之前想去的地方）
+      if (target) {
+        // 如果 redirect 包含查询参数（如 /oauth/authorize?client_id=...），
+        // 使用 window.location.href 以确保完整的 URL 被正确导航
+        if (target.includes('?')) {
+          window.location.href = target
+          return
+        }
+        throw redirect({ to: target as never })
+      }
       // 否则跳转到 dashboard
-      throw redirect({ to: search?.redirect || '/dashboard' })
+      throw redirect({ to: '/dashboard' })
     }
   },
 })
