@@ -101,13 +101,12 @@ api.interceptors.response.use(
     const status = error?.response?.status
 
     if (status === 401) {
-      try {
-        useAuthStore.getState().auth.reset()
-      } catch {
-        /* empty */
-      }
-
       if (!skip) {
+        try {
+          useAuthStore.getState().auth.reset()
+        } catch {
+          /* empty */
+        }
         toast.error(t('Session expired!'))
       }
     } else if (!skip) {

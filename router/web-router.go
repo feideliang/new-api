@@ -36,8 +36,32 @@ func SetWebRouter(router *gin.Engine, assets ThemeAssets) {
 			controller.RelayNotFound(c)
 			return
 		}
+
+		// Cross-theme login route compatibility:
+		//   classic theme uses /login, default theme uses /sign-in.
+		//   Redirect to the canonical path for the active theme, preserving
+		//   query parameters (e.g. ?redirect=...).
+		path := c.Request.URL.Path
+		theme := common.GetTheme()
+		if theme == "classic" && path == "/sign-in" {
+			target := "/login"
+			if c.Request.URL.RawQuery != "" {
+				target += "?" + c.Request.URL.RawQuery
+			}
+			c.Redirect(http.StatusTemporaryRedirect, target)
+			return
+		}
+		if theme == "default" && path == "/login" {
+			target := "/sign-in"
+			if c.Request.URL.RawQuery != "" {
+				target += "?" + c.Request.URL.RawQuery
+			}
+			c.Redirect(http.StatusTemporaryRedirect, target)
+			return
+		}
+
 		c.Header("Cache-Control", "no-cache")
-		if common.GetTheme() == "classic" {
+		if theme == "classic" {
 			c.Data(http.StatusOK, "text/html; charset=utf-8", assets.ClassicIndexPage)
 		} else {
 			c.Data(http.StatusOK, "text/html; charset=utf-8", assets.DefaultIndexPage)

@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 
-import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { UserContext } from '../../context/User';
 import { StatusContext } from '../../context/Status';
@@ -116,6 +116,23 @@ const LoginForm = () => {
   const logo = getLogo();
   const systemName = getSystemName();
 
+  // Read redirect from search params so login / 2FA success can
+  // send the user back to the protected page they were trying to reach
+  // (e.g. /oauth/authorize?client_id=...).
+  const redirectAfterLogin = useCallback(() => {
+    const redirect = searchParams.get('redirect');
+    if (redirect) {
+      // Handle absolute URLs with query params
+      if (redirect.includes('?')) {
+        window.location.href = redirect;
+      } else {
+        navigate(redirect, { replace: true });
+      }
+    } else {
+      navigate('/console', { replace: true });
+    }
+  }, [searchParams, navigate]);
+
   let affCode = new URLSearchParams(window.location.search).get('aff');
   if (affCode) {
     localStorage.setItem('aff', affCode);
@@ -198,9 +215,9 @@ const LoginForm = () => {
         localStorage.setItem('user', JSON.stringify(data));
         setUserData(data);
         updateAPI();
-        navigate('/');
         showSuccess('登录成功！');
         setShowWeChatLoginModal(false);
+        redirectAfterLogin();
       } else {
         showError(message);
       }
@@ -255,7 +272,7 @@ const LoginForm = () => {
               centered: true,
             });
           }
-          navigate('/console');
+          redirectAfterLogin();
         } else {
           showError(message);
         }
@@ -300,7 +317,7 @@ const LoginForm = () => {
         showSuccess('登录成功！');
         setUserData(data);
         updateAPI();
-        navigate('/');
+        redirectAfterLogin();
       } else {
         showError(message);
       }
@@ -456,7 +473,7 @@ const LoginForm = () => {
         setUserData(finish.data);
         updateAPI();
         showSuccess('登录成功！');
-        navigate('/console');
+        redirectAfterLogin();
       } else {
         showError(finish.message || 'Passkey 登录失败，请重试');
       }
@@ -491,7 +508,7 @@ const LoginForm = () => {
     setUserData(data);
     updateAPI();
     showSuccess('登录成功！');
-    navigate('/console');
+    redirectAfterLogin();
   };
 
   // 返回登录页面

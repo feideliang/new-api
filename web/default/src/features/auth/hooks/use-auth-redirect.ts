@@ -87,7 +87,16 @@ export function useAuthRedirect() {
 
     // Navigate to target page
     const targetPath = redirectTo || '/dashboard'
+    // eslint-disable-next-line no-console
+    console.log('[auth-redirect] redirectTo:', redirectTo, 'targetPath:', targetPath)
+    // For URLs with query parameters (like OAuth authorize redirects),
+    // use window.location.href to ensure the full URL including query
+    // params is preserved and the backend handles the session correctly.
     if (targetPath.includes('?')) {
+      // Ensure the user data is persisted before navigating away
+      try {
+        window.localStorage.setItem('app:login_complete', Date.now().toString())
+      } catch { /* ignore */ }
       window.location.href = targetPath
       return
     }
