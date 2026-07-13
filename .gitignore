@@ -37,3 +37,8 @@ token_estimator_test.go
 skills-lock.json
 .playwright-mcp
 *.tar.gz
+
+# Plugins: ignore zip file and macOS metadata
+plugins/tmp.zip
+plugins/__MACOSX
+plugins/.tmp/plugins/.DS_Store
