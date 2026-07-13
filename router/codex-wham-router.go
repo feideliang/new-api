@@ -28,4 +28,17 @@ func RegisterCodexWhamRoutes(router *gin.Engine) {
 			controller.CodexWhamProfileMe,
 		)
 	}
+
+	// Plugin store list endpoint for Codex CLI
+	for _, path := range []string{
+		"/ps/plugins/list",
+		"/backend-api/ps/plugins/list",
+		"/api/codex/ps/plugins/list",
+		"/codex-backend/codex/ps/plugins/list",
+	} {
+		router.GET(path,
+			middleware.RouteTag("relay"),
+			controller.CodexPsPluginsList,
+		)
+	}
 }

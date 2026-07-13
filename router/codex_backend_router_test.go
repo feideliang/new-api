@@ -151,3 +151,32 @@ func TestWhamAppsMCPInitializedNotificationIsAccepted(t *testing.T) {
 	require.Equal(t, http.StatusAccepted, recorder.Code)
 	require.Empty(t, recorder.Body.String())
 }
+
+func TestPsPluginsListReturnsJSON(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	router := gin.New()
+	RegisterCodexWhamRoutes(router)
+	SetWebRouter(router, ThemeAssets{
+		DefaultBuildFS:   embed.FS{},
+		DefaultIndexPage: []byte("<html>New API</html>"),
+		ClassicBuildFS:   embed.FS{},
+		ClassicIndexPage: []byte("<html>Classic</html>"),
+	})
+
+	for _, path := range []string{
+		"/ps/plugins/list",
+		"/backend-api/ps/plugins/list",
+		"/api/codex/ps/plugins/list",
+		"/codex-backend/codex/ps/plugins/list",
+	} {
+		recorder := httptest.NewRecorder()
+		request := httptest.NewRequest(http.MethodGet, path, nil)
+		request.Header.Set("Authorization", "Bearer test-token")
+
+		router.ServeHTTP(recorder, request)
+
+		require.NotEqual(t, http.StatusNotFound, recorder.Code, "route must not be 404: "+path)
+		require.NotContains(t, recorder.Body.String(), "<html>", "route must not fall through to web index: "+path)
+	}
+}
