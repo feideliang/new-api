@@ -246,9 +246,15 @@ func ListModels(c *gin.Context, modelType int) {
 		}
 	} else {
 		var models []string
+		showAll := c.Query("show_all") == "true"
 		if groups.tokenGroup == "auto" {
 			for _, autoGroup := range ownerGroups {
-				groupModels := model.GetGroupEnabledModels(autoGroup)
+				var groupModels []string
+				if showAll {
+					groupModels = model.GetGroupEnabledModels(autoGroup)
+				} else {
+					groupModels = model.GetGroupEnabledModelsByTag(autoGroup)
+				}
 				for _, g := range groupModels {
 					if !common.StringsContains(models, g) {
 						models = append(models, g)
@@ -256,7 +262,11 @@ func ListModels(c *gin.Context, modelType int) {
 				}
 			}
 		} else {
-			models = model.GetGroupEnabledModels(ownerGroups[0])
+			if showAll {
+				models = model.GetGroupEnabledModels(ownerGroups[0])
+			} else {
+				models = model.GetGroupEnabledModelsByTag(ownerGroups[0])
+			}
 		}
 		for _, modelName := range models {
 			if !acceptUnsetRatioModel {

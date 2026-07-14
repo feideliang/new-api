@@ -45,6 +45,15 @@ func GetGroupEnabledModels(group string) []string {
 	return models
 }
 
+// GetGroupEnabledModelsByTag returns only models that have a non-empty tag in the abilities table.
+func GetGroupEnabledModelsByTag(group string) []string {
+	var models []string
+	DB.Table("abilities").
+		Where(commonGroupCol+" = ? AND enabled = ? AND tag IS NOT NULL AND tag != ''", group, true).
+		Distinct("model").Pluck("model", &models)
+	return models
+}
+
 func GetEnabledModels() []string {
 	var models []string
 	// Find distinct models
