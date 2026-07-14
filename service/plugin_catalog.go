@@ -554,6 +554,14 @@ func parseDefaultPrompt(raw json.RawMessage) []string {
 	return nil
 }
 
+// nonNilSlice ensures nil slices are serialized as [] instead of null
+func nonNilSlice[T any](s []T) []T {
+	if s == nil {
+		return []T{}
+	}
+	return s
+}
+
 func buildPluginItem(entry PluginCatalogEntry, detail bool, installState *bool) *dto.PluginItem {
 	item := &dto.PluginItem{
 		ID:                   entry.QualifiedID,
@@ -566,16 +574,16 @@ func buildPluginItem(entry PluginCatalogEntry, detail bool, installState *bool) 
 			Version:     entry.Version,
 			DisplayName: entry.DisplayName,
 			Description: entry.Description,
-			AppIDs:      entry.AppIDs,
-			Keywords:    entry.Keywords,
+			AppIDs:      nonNilSlice(entry.AppIDs),
+			Keywords:    nonNilSlice(entry.Keywords),
 			Interface: dto.PluginInterface{
 				ShortDescription: entry.ShortDescription,
-				Capabilities:     entry.Capabilities,
+				Capabilities:     nonNilSlice(entry.Capabilities),
 				LogoURL:          entry.LogoURL,
-				ScreenshotURLs:   entry.ScreenshotURLs,
-				DefaultPrompts:   entry.DefaultPrompts,
+				ScreenshotURLs:   nonNilSlice(entry.ScreenshotURLs),
+				DefaultPrompts:   nonNilSlice(entry.DefaultPrompts),
 			},
-			Skills: entry.Skills,
+			Skills: nonNilSlice(entry.Skills),
 		},
 	}
 

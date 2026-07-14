@@ -14,6 +14,7 @@ import (
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/service"
+	oauthserversvc "github.com/QuantumNous/new-api/service/oauthserver"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
 	"github.com/QuantumNous/new-api/types"
 
@@ -337,6 +338,13 @@ func TokenAuth() func(c *gin.Context) {
 			parts = strings.Split(key, "-")
 			key = parts[0]
 		}
+		// 保留原始 key 用于 OAuth JWT 兜底校验
+		rawKey := c.Request.Header.Get("Authorization")
+		if strings.HasPrefix(rawKey, "Bearer ") || strings.HasPrefix(rawKey, "bearer ") {
+			rawKey = strings.TrimSpace(rawKey[7:])
+		}
+		rawKey = strings.TrimPrefix(rawKey, "sk-")
+
 		token, err := model.ValidateUserToken(key)
 		if token != nil {
 			id := c.GetInt("id")
@@ -349,10 +357,43 @@ func TokenAuth() func(c *gin.Context) {
 				common.SysLog("TokenAuth ValidateUserToken database error: " + err.Error())
 				abortWithOpenAiMessage(c, http.StatusInternalServerError,
 					common.TranslateMessage(c, i18n.MsgDatabaseError))
-			} else {
+				return
+			}
+			// OAuth JWT 兜底：当 tokens 表查不到时，尝试用 OAuth access token 校验
+			oauthAuth, oauthErr := oauthserversvc.AuthenticateRelayAccessToken(c.Request.Context(), model.DB, rawKey)
+			if oauthErr != nil || oauthAuth == nil {
 				abortWithOpenAiMessage(c, http.StatusUnauthorized,
 					common.TranslateMessage(c, i18n.MsgTokenInvalid))
+				return
 			}
+			// OAuth 校验成功，设置上下文
+			c.Set("id", oauthAuth.UserID)
+			c.Set("token_id", oauthAuth.AccessTokenID)
+			c.Set("token_key", rawKey)
+			c.Set("token_name", "OAuth: "+oauthAuth.ClientName)
+			c.Set("token_unlimited_quota", true)
+
+			userCache, ucErr := model.GetUserCache(oauthAuth.UserID)
+			if ucErr != nil {
+				common.SysLog(fmt.Sprintf("TokenAuth OAuth GetUserCache error for user %d: %v", oauthAuth.UserID, ucErr))
+				abortWithOpenAiMessage(c, http.StatusInternalServerError,
+					common.TranslateMessage(c, i18n.MsgDatabaseError))
+				return
+			}
+			if userCache.Status != common.UserStatusEnabled {
+				abortWithOpenAiMessage(c, http.StatusForbidden, common.TranslateMessage(c, i18n.MsgAuthUserBanned))
+				return
+			}
+			userCache.WriteContext(c)
+			userGroup := userCache.Group
+			tokenGroup := userGroup // OAuth token 使用用户默认组
+			if _, ok := service.GetUserUsableGroups(userGroup)[tokenGroup]; !ok {
+				abortWithOpenAiMessage(c, http.StatusForbidden, fmt.Sprintf("无权访问 %s 分组", tokenGroup))
+				return
+			}
+			c.Set("token_group", tokenGroup)
+			common.SetContextKey(c, constant.ContextKeyTokenGroup, tokenGroup)
+			common.SetContextKey(c, constant.ContextKeyTokenCrossGroupRetry, false)
 			return
 		}
 
