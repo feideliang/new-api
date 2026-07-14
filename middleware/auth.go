@@ -294,8 +294,10 @@ func TokenAuth() func(c *gin.Context) {
 			}
 			c.Request.Header.Set("Authorization", "Bearer "+key)
 		}
-		// 检查path包含/v1/messages 或 /v1/models
-		if strings.Contains(c.Request.URL.Path, "/v1/messages") || strings.Contains(c.Request.URL.Path, "/v1/models") {
+		// 检查path包含/v1/messages、/v1/models 或 /ps/plugins/
+		if strings.Contains(c.Request.URL.Path, "/v1/messages") ||
+			strings.Contains(c.Request.URL.Path, "/v1/models") ||
+			strings.Contains(c.Request.URL.Path, "/ps/plugins/") {
 			anthropicKey := c.Request.Header.Get("x-api-key")
 			if anthropicKey != "" {
 				c.Request.Header.Set("Authorization", "Bearer "+anthropicKey)
