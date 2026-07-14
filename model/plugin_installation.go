@@ -15,7 +15,7 @@ type PluginInstallation struct {
 	PluginName       string `json:"plugin_name" gorm:"type:varchar(128);not null"`
 	Scope            string `json:"scope" gorm:"type:varchar(16);not null;default:GLOBAL"`
 	Enabled          bool   `json:"enabled" gorm:"default:true"`
-	DisabledSkills   string `json:"disabled_skills" gorm:"type:text;default:[]"`
+	DisabledSkills   string `json:"disabled_skills" gorm:"type:text"`
 	InstalledVersion string `json:"installed_version" gorm:"type:varchar(64)"`
 	CreatedTime      int64  `json:"created_time" gorm:"bigint"`
 	UpdatedTime      int64  `json:"updated_time" gorm:"bigint"`
