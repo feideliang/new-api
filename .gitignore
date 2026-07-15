@@ -42,3 +42,8 @@ skills-lock.json
 plugins/tmp.zip
 plugins/__MACOSX
 plugins/.tmp/plugins/.DS_Store
+
+# Local-only live probes and scratch test workspaces.
+.local-tests/
+service/relayconvert/chat_responses_live_local_test.go
+service/openaicompat/chat_responses_live_local_test.go

@@ -28,6 +28,7 @@ import {
   ListTodo,
   MessageSquare,
   Radio,
+  ServerCog,
   Settings,
   Ticket,
   User,
@@ -36,7 +37,9 @@ import {
   Wrench,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+
 import { type SidebarData } from '@/components/layout/types'
+import { ROLE } from '@/lib/roles'
 
 /**
  * Root navigation groups for the application sidebar.
@@ -149,9 +152,15 @@ export function useSidebarData(): SidebarData {
             icon: BarChart3,
           },
           {
-            title: t('Subscription Management'),
+            title: t('Subscriptions'),
             url: '/subscriptions',
             icon: CreditCard,
+          },
+          {
+            title: t('System Info'),
+            url: '/system-info',
+            icon: ServerCog,
+            requiredRole: ROLE.SUPER_ADMIN,
           },
           {
             title: t('System Settings'),
