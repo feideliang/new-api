@@ -32,7 +32,9 @@ var logKeyCol string
 const autoMigrateRecordFile = "data/.auto_migrate_date"
 var logGroupCol string
 
-func initCol() {
+// InitCol initializes common column name variables based on database type.
+// Exported for use in tests that bypass InitDB.
+func InitCol() {
 	// init common column names
 	if common.UsingMainDatabase(common.DatabaseTypePostgreSQL) {
 		commonGroupCol = `"group"`
@@ -190,7 +192,7 @@ func InitDB() (err error) {
 		if os.Getenv("LOG_SQL_DSN") == "" {
 			common.SetLogDatabaseType(dbType)
 		}
-		initCol()
+		InitCol()
 		if common.DebugEnabled {
 			db = db.Debug()
 		}
@@ -235,13 +237,13 @@ func InitLogDB() (err error) {
 	if os.Getenv("LOG_SQL_DSN") == "" {
 		LOG_DB = DB
 		common.SetLogDatabaseType(common.MainDatabaseType())
-		initCol()
+		InitCol()
 		return
 	}
 	db, dbType, err := chooseDB("LOG_SQL_DSN", true)
 	if err == nil {
 		common.SetLogDatabaseType(dbType)
-		initCol()
+		InitCol()
 		if common.DebugEnabled {
 			db = db.Debug()
 		}

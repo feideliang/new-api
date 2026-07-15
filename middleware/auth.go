@@ -411,6 +411,20 @@ func TokenAuth() func(c *gin.Context) {
 			c.Set("token_name", "OAuth: "+oauthAuth.ClientName)
 			c.Set("token_unlimited_quota", true)
 
+			// 校验 OAuth token 是否包含 relay 所需的 scope
+			hasRelayScope := false
+			for _, scope := range oauthAuth.Scopes {
+				if scope == oauthserversvc.ScopeConnectorsInvoke {
+					hasRelayScope = true
+					break
+				}
+			}
+			if !hasRelayScope {
+				abortWithOpenAiMessage(c, http.StatusUnauthorized,
+					common.TranslateMessage(c, i18n.MsgTokenInvalid))
+				return
+			}
+
 			userCache, ucErr := model.GetUserCache(oauthAuth.UserID)
 			if ucErr != nil {
 				common.SysLog(fmt.Sprintf("TokenAuth OAuth GetUserCache error for user %d: %v", oauthAuth.UserID, ucErr))
@@ -432,6 +446,7 @@ func TokenAuth() func(c *gin.Context) {
 			c.Set("token_group", tokenGroup)
 			common.SetContextKey(c, constant.ContextKeyTokenGroup, tokenGroup)
 			common.SetContextKey(c, constant.ContextKeyTokenCrossGroupRetry, false)
+			common.SetContextKey(c, constant.ContextKeyUsingGroup, tokenGroup)
 			return
 		}
 

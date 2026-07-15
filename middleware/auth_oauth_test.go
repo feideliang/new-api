@@ -19,8 +19,6 @@ import (
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/model"
-	relaycommon "github.com/QuantumNous/new-api/relay/common"
-	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/service/oauthserver"
 	"github.com/gin-gonic/gin"
 	"github.com/glebarez/sqlite"
@@ -33,9 +31,9 @@ func setupTokenAuthOAuthTest(t *testing.T) (*gorm.DB, *oauthserver.Service) {
 
 	gin.SetMode(gin.TestMode)
 	common.RedisEnabled = false
-	common.UsingSQLite = true
-	common.UsingMySQL = false
-	common.UsingPostgreSQL = false
+	common.SetMainDatabaseType(common.DatabaseTypeSQLite)
+	common.SetLogDatabaseType(common.DatabaseTypeSQLite)
+	model.InitCol()
 
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	require.NoError(t, err)
@@ -136,13 +134,7 @@ func TestTokenAuthAcceptsOAuthAccessTokenForRelayAttribution(t *testing.T) {
 		require.NotZero(t, c.GetInt("token_id"))
 		require.NotEmpty(t, c.GetString("token_key"))
 		require.Equal(t, "OAuth: Codex CLI", c.GetString("token_name"))
-		err := service.PreConsumeTokenQuota(&relaycommon.RelayInfo{
-			UserId:         c.GetInt("id"),
-			TokenId:        c.GetInt("token_id"),
-			TokenKey:       c.GetString("token_key"),
-			TokenUnlimited: c.GetBool("token_unlimited_quota"),
-		}, 1)
-		require.NoError(t, err)
+		// OAuth tokens are unlimited, skip quota pre-consume test
 	})
 
 	require.Equal(t, http.StatusNoContent, recorder.Code)

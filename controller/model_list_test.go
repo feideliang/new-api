@@ -234,11 +234,12 @@ func TestListModelsIncludesTieredBillingModel(t *testing.T) {
 		Group:    "default",
 		Status:   common.UserStatusEnabled,
 	}).Error)
+	tagValue := "1"
 	require.NoError(t, db.Create(&[]model.Ability{
-		{Group: "default", Model: "zz-tiered-visible-model", ChannelId: 1, Enabled: true},
-		{Group: "default", Model: "zz-tiered-empty-expr-model", ChannelId: 1, Enabled: true},
-		{Group: "default", Model: "zz-tiered-missing-expr-model", ChannelId: 1, Enabled: true},
-		{Group: "default", Model: "zz-unpriced-model", ChannelId: 1, Enabled: true},
+		{Group: "default", Model: "zz-tiered-visible-model", ChannelId: 1, Enabled: true, Tag: &tagValue},
+		{Group: "default", Model: "zz-tiered-empty-expr-model", ChannelId: 1, Enabled: true, Tag: &tagValue},
+		{Group: "default", Model: "zz-tiered-missing-expr-model", ChannelId: 1, Enabled: true, Tag: &tagValue},
+		{Group: "default", Model: "zz-unpriced-model", ChannelId: 1, Enabled: true, Tag: &tagValue},
 	}).Error)
 
 	recorder := httptest.NewRecorder()
@@ -316,11 +317,13 @@ func TestListModelsUsesAdvancedCustomEndpointTypesFromPricingCache(t *testing.T)
 		},
 	})
 	require.NoError(t, db.Create(channel).Error)
+	tagValue2 := "1"
 	require.NoError(t, db.Create(&model.Ability{
 		Group:     "default",
 		Model:     "gemini-3.5-flash",
 		ChannelId: 701,
 		Enabled:   true,
+		Tag:       &tagValue2,
 	}).Error)
 
 	model.InitChannelCache()
