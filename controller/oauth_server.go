@@ -36,6 +36,7 @@ var (
 )
 
 type oauthAuthorizationTemplateData struct {
+	SystemName  string
 	ClientName  string
 	ClientID    string
 	Scopes      []string
@@ -91,43 +92,225 @@ type oauthServerAdminStatusPayload struct {
 }
 
 var oauthAuthorizeTemplate = template.Must(template.New("oauth_authorize").Parse(`<!doctype html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Authorize {{.ClientName}}</title>
+  <title>Authorize {{.ClientName}} — {{.SystemName}}</title>
   <style>
-    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; color: #111827; background: #f8fafc; }
-    main { max-width: 560px; margin: 8vh auto; padding: 32px; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; }
-    h1 { font-size: 22px; line-height: 1.25; margin: 0 0 16px; }
-    p { color: #4b5563; }
-    ul { padding-left: 20px; }
-    .actions { display: flex; gap: 12px; margin-top: 24px; }
-    button { border: 0; border-radius: 6px; padding: 10px 16px; cursor: pointer; font-weight: 600; }
-    .approve { background: #111827; color: #fff; }
-    .deny { background: #e5e7eb; color: #111827; }
+    :root {
+      color-scheme: light;
+      --blue: #0868f7;
+      --blue-dark: #0054d8;
+      --ink: #0b0d11;
+      --text: #1b2029;
+      --muted: #626b7a;
+      --line: #e5e9f0;
+      --soft: #f5f8fd;
+      --white: #fff;
+      --font: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", system-ui, -apple-system, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { height: 100%; }
+    body {
+      min-height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      color: var(--text);
+      background: var(--soft);
+      font-family: var(--font);
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+    .card {
+      width: 100%;
+      max-width: 460px;
+      background: var(--white);
+      border-radius: 18px;
+      box-shadow: 0 28px 90px rgba(9,21,43,.12), 0 2px 8px rgba(9,21,43,.06);
+      overflow: hidden;
+    }
+    .card-header {
+      padding: 32px 32px 0;
+      text-align: center;
+    }
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: var(--blue);
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .brand-name {
+      font-size: 16px;
+      font-weight: 650;
+      color: var(--ink);
+    }
+    h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--ink);
+      line-height: 1.3;
+      margin-bottom: 8px;
+    }
+    .subtitle {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .card-body {
+      padding: 28px 32px;
+    }
+    .scope-card {
+      background: var(--soft);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .scope-label {
+      font-size: 12px;
+      font-weight: 650;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 14px;
+    }
+    .scope-list {
+      list-style: none;
+      display: grid;
+      gap: 10px;
+    }
+    .scope-list li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .scope-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--blue);
+      flex-shrink: 0;
+    }
+    .redirect-info {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 24px;
+      line-height: 1.6;
+    }
+    .redirect-info span {
+      word-break: break-all;
+      color: var(--text);
+    }
+    .actions {
+      display: flex;
+      gap: 12px;
+    }
+    button {
+      flex: 1;
+      min-height: 46px;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      padding: 0 20px;
+      font-family: var(--font);
+      font-size: 15px;
+      font-weight: 650;
+      cursor: pointer;
+      transition: transform .18s ease, background .18s ease, border-color .18s ease, box-shadow .18s ease;
+    }
+    button:hover { transform: translateY(-1px); }
+    button:active { transform: translateY(0); }
+    .approve {
+      color: #fff;
+      background: var(--blue);
+      box-shadow: 0 8px 20px rgba(8,104,247,.18);
+    }
+    .approve:hover { background: var(--blue-dark); }
+    .deny {
+      color: var(--text);
+      background: var(--white);
+      border-color: var(--line);
+    }
+    .deny:hover { border-color: #9aa2af; }
+    .card-footer {
+      padding: 16px 32px 24px;
+      text-align: center;
+    }
+    .security-note {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .security-note svg {
+      width: 14px;
+      height: 14px;
+      color: var(--blue);
+    }
+    @media (max-width: 480px) {
+      body { padding: 16px; }
+      .card-header, .card-body, .card-footer { padding-left: 20px; padding-right: 20px; }
+      h1 { font-size: 20px; }
+    }
   </style>
 </head>
 <body>
-<main>
-  <h1>Authorize {{.ClientName}}</h1>
-  <p>{{.ClientName}} is requesting access to your account.</p>
-  <ul>{{range .Scopes}}<li>{{.}}</li>{{end}}</ul>
-  <form method="post" action="/oauth/authorize">
-    <input type="hidden" name="response_type" value="code">
-    <input type="hidden" name="client_id" value="{{.ClientID}}">
-    <input type="hidden" name="redirect_uri" value="{{.RedirectURI}}">
-    <input type="hidden" name="scope" value="{{range $i, $s := .Scopes}}{{if $i}} {{end}}{{$s}}{{end}}">
-    <input type="hidden" name="state" value="{{.State}}">
-    <input type="hidden" name="nonce" value="{{.Nonce}}">
-    <input type="hidden" name="code_challenge" value="{{.Challenge}}">
-    <input type="hidden" name="code_challenge_method" value="{{.Method}}">
-    <div class="actions">
-      <button class="approve" type="submit" name="decision" value="approve">Authorize</button>
-      <button class="deny" type="submit" name="decision" value="deny">Deny</button>
+<div class="card">
+  <div class="card-header">
+    <div class="brand">
+      <div class="brand-icon">{{slice .SystemName 0 1}}</div>
+      <div class="brand-name">{{.SystemName}}</div>
     </div>
-  </form>
-</main>
+    <h1>Authorize {{.ClientName}}</h1>
+    <p class="subtitle">{{.ClientName}} is requesting access to your account.</p>
+  </div>
+  <div class="card-body">
+    <div class="scope-card">
+      <div class="scope-label">Permissions requested</div>
+      <ul class="scope-list">
+        {{range .Scopes}}<li><span class="scope-dot"></span>{{.}}</li>{{end}}
+      </ul>
+    </div>
+    <div class="redirect-info">Redirect to: <span>{{.RedirectURI}}</span></div>
+    <form method="post" action="/oauth/authorize">
+      <input type="hidden" name="response_type" value="code">
+      <input type="hidden" name="client_id" value="{{.ClientID}}">
+      <input type="hidden" name="redirect_uri" value="{{.RedirectURI}}">
+      <input type="hidden" name="scope" value="{{range $i, $s := .Scopes}}{{if $i}} {{end}}{{$s}}{{end}}">
+      <input type="hidden" name="state" value="{{.State}}">
+      <input type="hidden" name="nonce" value="{{.Nonce}}">
+      <input type="hidden" name="code_challenge" value="{{.Challenge}}">
+      <input type="hidden" name="code_challenge_method" value="{{.Method}}">
+      <div class="actions">
+        <button class="deny" type="submit" name="decision" value="deny">Deny</button>
+        <button class="approve" type="submit" name="decision" value="approve">Authorize</button>
+      </div>
+    </form>
+  </div>
+  <div class="card-footer">
+    <div class="security-note">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Secured by OAuth 2.0
+    </div>
+  </div>
+</div>
 </body>
 </html>`))
 
@@ -520,6 +703,7 @@ func renderOAuthAuthorize(c *gin.Context, req oauthserversvc.AuthorizationReques
 	}
 	c.Header("Content-Type", "text/html; charset=utf-8")
 	if err := oauthAuthorizeTemplate.Execute(c.Writer, oauthAuthorizationTemplateData{
+		SystemName:  common.SystemName,
 		ClientName:  prompt.ClientName,
 		ClientID:    prompt.ClientID,
 		Scopes:      prompt.Scopes,
