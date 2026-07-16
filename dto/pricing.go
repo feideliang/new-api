@@ -9,14 +9,13 @@ type OpenAIModels struct {
 	Created                  int                     `json:"created"`
 	OwnedBy                  string                  `json:"owned_by"`
 	SupportedEndpointTypes   []constant.EndpointType `json:"supported_endpoint_types"`
-	SupportedReasoningLevels []ReasoningLevel        `json:"supported_reasoning_levels,omitempty"`
+	DefaultReasoningLevel    string                  `json:"default_reasoning_level"`
+	SupportedReasoningLevels []ReasoningLevel        `json:"supported_reasoning_levels"`
 }
 
 type ReasoningLevel struct {
-	DefaultReasoningEffort     string   `json:"default_reasoning_effort"`
-	DefaultReasoningEffortCaps string   `json:"defaultReasoningEffort"`
-	ReasoningEffort            string   `json:"reasoning_effort"`
-	SupportedReasoningEfforts  []string `json:"supported_reasoning_efforts"`
+	Effort      string `json:"effort"`
+	Description string `json:"description"`
 }
 
 type AnthropicModel struct {

@@ -167,13 +167,12 @@ func buildOpenAIModel(modelName string, ownerByModel map[string]string) dto.Open
 	}
 	oaiModel.SupportedEndpointTypes = model.GetModelSupportEndpointTypes(modelName)
 	if dto.IsOpenAIReasoningOModel(modelName) {
+		oaiModel.DefaultReasoningLevel = "medium"
 		oaiModel.SupportedReasoningLevels = []dto.ReasoningLevel{
-			{
-				DefaultReasoningEffort:     "medium",
-				DefaultReasoningEffortCaps: "medium",
-				ReasoningEffort:            "medium",
-				SupportedReasoningEfforts:  []string{"minimal", "low", "medium", "high", "xhigh"},
-			},
+			{Effort: "low", Description: "响应更快，推理更轻量"},
+			{Effort: "medium", Description: "兼顾速度和推理深度，适合日常任务"},
+			{Effort: "high", Description: "更强推理深度，适合复杂问题"},
+			{Effort: "xhigh", Description: "最高推理深度，适合高复杂度问题"},
 		}
 	}
 	return oaiModel
