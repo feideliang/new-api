@@ -4,11 +4,19 @@ import "github.com/QuantumNous/new-api/constant"
 
 // 这里不好动就不动了，本来想独立出来的（
 type OpenAIModels struct {
-	Id                     string                  `json:"id"`
-	Object                 string                  `json:"object"`
-	Created                int                     `json:"created"`
-	OwnedBy                string                  `json:"owned_by"`
-	SupportedEndpointTypes []constant.EndpointType `json:"supported_endpoint_types"`
+	Id                       string                  `json:"id"`
+	Object                   string                  `json:"object"`
+	Created                  int                     `json:"created"`
+	OwnedBy                  string                  `json:"owned_by"`
+	SupportedEndpointTypes   []constant.EndpointType `json:"supported_endpoint_types"`
+	SupportedReasoningLevels []ReasoningLevel        `json:"supported_reasoning_levels,omitempty"`
+}
+
+type ReasoningLevel struct {
+	DefaultReasoningEffort     string   `json:"default_reasoning_effort"`
+	DefaultReasoningEffortCaps string   `json:"defaultReasoningEffort"`
+	ReasoningEffort            string   `json:"reasoning_effort"`
+	SupportedReasoningEfforts  []string `json:"supported_reasoning_efforts"`
 }
 
 type AnthropicModel struct {

@@ -166,6 +166,16 @@ func buildOpenAIModel(modelName string, ownerByModel map[string]string) dto.Open
 		oaiModel.OwnedBy = owner
 	}
 	oaiModel.SupportedEndpointTypes = model.GetModelSupportEndpointTypes(modelName)
+	if dto.IsOpenAIReasoningOModel(modelName) {
+		oaiModel.SupportedReasoningLevels = []dto.ReasoningLevel{
+			{
+				DefaultReasoningEffort:     "medium",
+				DefaultReasoningEffortCaps: "medium",
+				ReasoningEffort:            "medium",
+				SupportedReasoningEfforts:  []string{"minimal", "low", "medium", "high", "xhigh"},
+			},
+		}
+	}
 	return oaiModel
 }
 
