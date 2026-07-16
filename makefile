@@ -9,19 +9,21 @@ DEV_API_SERVICE = new-api
 DEV_POSTGRES_DB = new-api
 DEV_POSTGRES_USER = root
 DEV_SQLITE_PATH ?= one-api.db
+LOCAL_COMPOSE_FILE = docker-compose.local.yml
+LOCAL_API_URL ?= http://127.0.0.1:3300
 
-.PHONY: all build-web build-web-classic build-all-web start-api dev dev-api dev-api-rebuild dev-web dev-web-classic reset-setup
+.PHONY: all build-web build-web-classic build-all-web start-api dev dev-api dev-api-rebuild dev-web dev-web-classic local-up local-down local-logs local-status reset-setup
 
 all: build-all-web start-api
 
 build-web:
 	@echo "Building default web..."
-	@cd ./web && bun install --frozen-lockfile
+	@cd ./web && bun install --frozen-lockfile --linker=isolated
 	@cd $(WEB_DIR) && DISABLE_ESLINT_PLUGIN='true' VITE_REACT_APP_VERSION=$(cat ../../VERSION) bun run build
 
 build-web-classic:
 	@echo "Building classic web..."
-	@cd ./web && bun install --frozen-lockfile
+	@cd ./web && bun install --frozen-lockfile --linker=isolated
 	@cd $(WEB_CLASSIC_DIR) && VITE_REACT_APP_VERSION=$(cat ../../VERSION) bun run build
 
 build-all-web: build-web build-web-classic
@@ -50,6 +52,21 @@ dev-web-classic:
 	@cd $(WEB_CLASSIC_DIR) && bun run dev -- --host 0.0.0.0 --port $(DEV_WEB_CLASSIC_PORT)
 
 dev: dev-api dev-web
+
+local-up:
+	@echo "Building and starting the complete local stack..."
+	@docker compose -f $(LOCAL_COMPOSE_FILE) up -d --build
+	@echo "Local console: $(LOCAL_API_URL)"
+
+local-down:
+	@echo "Stopping the local stack (data volumes are preserved)..."
+	@docker compose -f $(LOCAL_COMPOSE_FILE) down
+
+local-logs:
+	@docker compose -f $(LOCAL_COMPOSE_FILE) logs -f --tail=200 new-api
+
+local-status:
+	@curl -fsS $(LOCAL_API_URL)/api/status
 
 reset-setup:
 	@echo "Resetting local setup wizard state..."
