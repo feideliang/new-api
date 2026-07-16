@@ -88,6 +88,7 @@ type TokenCountMeta struct {
 type RelayInfo struct {
 	TokenId           int
 	TokenKey          string
+	TokenAuthType     string
 	TokenGroup        string
 	UserId            int
 	UsingGroup        string // 使用的分组，当auto跨分组重试时，会变动
@@ -199,6 +200,10 @@ type RelayInfo struct {
 	*ResponsesUsageInfo
 	*ChannelMeta
 	*TaskRelayInfo
+}
+
+func (info *RelayInfo) UsesPersistedAPIToken() bool {
+	return info != nil && info.TokenAuthType != constant.TokenAuthTypeOAuth
 }
 
 func (info *RelayInfo) InitChannelMeta(c *gin.Context) {
@@ -488,6 +493,7 @@ func genBaseRelayInfo(c *gin.Context, request dto.Request) *RelayInfo {
 
 		TokenId:        common.GetContextKeyInt(c, constant.ContextKeyTokenId),
 		TokenKey:       common.GetContextKeyString(c, constant.ContextKeyTokenKey),
+		TokenAuthType:  common.GetContextKeyString(c, constant.ContextKeyTokenAuthType),
 		TokenUnlimited: common.GetContextKeyBool(c, constant.ContextKeyTokenUnlimited),
 		TokenGroup:     tokenGroup,
 

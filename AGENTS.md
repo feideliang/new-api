@@ -124,10 +124,20 @@ Do NOT directly import or call `encoding/json` in business code. `json.RawMessag
 - Avoid hand-written assertion helpers unless they encode a reusable project-specific invariant.
 - When cleaning tests, preserve meaningful regression coverage. If a deleted test covered a real contract indirectly, replace it with a smaller test that asserts that contract directly.
 
+**Codex OAuth and wallet billing compatibility:**
+
+- Treat OAuth access tokens and ordinary API tokens as different credential types and different database namespaces. An `OAuthServerAccessToken.Id` MUST NOT be passed through a context field that downstream code interprets as `model.Token.Id`.
+- The authenticated user ID is the wallet owner for Codex OAuth requests. OpenAI-compatible dashboard billing endpoints MUST read that user's `quota` and `used_quota` even when `DisplayTokenStatEnabled` is enabled; ordinary API-token requests may continue to use per-token statistics.
+- Authentication middleware must expose the credential type explicitly when downstream behavior depends on it. Do not infer credential type from coincidentally matching numeric IDs, token prefixes after normalization, client names, or quota values.
+- Convert quota using the runtime `common.QuotaPerUnit` and configured display type. Never hard-code the default quota unit, a `$5` fallback, account totals, or production user identifiers.
+- A wallet balance is not a monthly subscription. Do not synthesize reset dates or recurring periods unless a real subscription or quota-window source supplies them.
+- Regression tests for OAuth billing must include an OAuth access-token row whose numeric ID collides with an unrelated API-token row. Assert that OAuth receives the user's wallet totals while a standard API token still receives its own token totals.
+- Never commit or log bearer tokens, GitHub tokens, OAuth authorization codes, account balance snapshots, or other live credentials. Use deterministic test fixtures with non-production values.
+
 ### Frontend Rules
 
 - Use `bun` as the preferred package manager and script runner for the frontend (`web/default/`):
-  - `bun install` for dependency installation
+  - `bun install --linker=isolated` from `web/` for workspace dependency installation; the default and classic apps require different major versions of some peer dependencies, so release builds must not use a hoisted layout
   - `bun run dev` for development server
   - `bun run build` for production build
   - `bun run i18n:*` for i18n tooling

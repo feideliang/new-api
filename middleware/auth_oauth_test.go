@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -24,7 +25,40 @@ import (
 	"github.com/glebarez/sqlite"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
+	gormlogger "gorm.io/gorm/logger"
 )
+
+type tokenAuthSQLCaptureLogger struct {
+	mu  sync.Mutex
+	sql strings.Builder
+}
+
+func (l *tokenAuthSQLCaptureLogger) LogMode(gormlogger.LogLevel) gormlogger.Interface {
+	return l
+}
+
+func (l *tokenAuthSQLCaptureLogger) Info(context.Context, string, ...interface{})  {}
+func (l *tokenAuthSQLCaptureLogger) Warn(context.Context, string, ...interface{})  {}
+func (l *tokenAuthSQLCaptureLogger) Error(context.Context, string, ...interface{}) {}
+
+func (l *tokenAuthSQLCaptureLogger) Trace(
+	_ context.Context,
+	_ time.Time,
+	fc func() (string, int64),
+	_ error,
+) {
+	sql, _ := fc()
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.sql.WriteString(sql)
+	l.sql.WriteByte('\n')
+}
+
+func (l *tokenAuthSQLCaptureLogger) Contains(value string) bool {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return strings.Contains(l.sql.String(), value)
+}
 
 func setupTokenAuthOAuthTest(t *testing.T) (*gorm.DB, *oauthserver.Service) {
 	t.Helper()
@@ -131,7 +165,9 @@ func TestTokenAuthAcceptsOAuthAccessTokenForRelayAttribution(t *testing.T) {
 		require.Equal(t, 42, c.GetInt("id"))
 		require.Equal(t, "default", common.GetContextKeyString(c, constant.ContextKeyUserGroup))
 		require.Equal(t, "default", common.GetContextKeyString(c, constant.ContextKeyUsingGroup))
-		require.NotZero(t, c.GetInt("token_id"))
+		require.Zero(t, c.GetInt("token_id"))
+		require.NotZero(t, common.GetContextKeyInt(c, constant.ContextKeyOAuthAccessTokenId))
+		require.Equal(t, constant.TokenAuthTypeOAuth, common.GetContextKeyString(c, constant.ContextKeyTokenAuthType))
 		require.NotEmpty(t, c.GetString("token_key"))
 		require.Equal(t, "OAuth: Codex CLI", c.GetString("token_name"))
 		// OAuth tokens are unlimited, skip quota pre-consume test
@@ -193,9 +229,25 @@ func TestTokenAuthStillAcceptsStandardSKToken(t *testing.T) {
 
 	recorder := performTokenAuthRequest(t, "Bearer sk-regular", func(c *gin.Context) {
 		require.Equal(t, 42, c.GetInt("id"))
+		require.NotZero(t, c.GetInt("token_id"))
+		require.Equal(t, constant.TokenAuthTypeAPIToken, common.GetContextKeyString(c, constant.ContextKeyTokenAuthType))
 		require.Equal(t, "regular", c.GetString("token_name"))
 		require.Equal(t, "regular", c.GetString("token_key"))
 	})
 
 	require.Equal(t, http.StatusNoContent, recorder.Code)
+}
+
+func TestTokenAuthOAuthDoesNotWriteBearerTokenToSQLLogs(t *testing.T) {
+	db, svc := setupTokenAuthOAuthTest(t)
+	accessToken := issueTokenAuthOAuthAccessToken(t, svc, "openid profile api.connectors.invoke")
+	sqlLogs := &tokenAuthSQLCaptureLogger{}
+	model.DB = db.Session(&gorm.Session{Logger: sqlLogs})
+
+	recorder := performTokenAuthRequest(t, "Bearer "+accessToken, func(c *gin.Context) {})
+
+	require.Equal(t, http.StatusNoContent, recorder.Code)
+	if sqlLogs.Contains("FROM `tokens`") {
+		t.Fatal("OAuth authentication queried the API token table and may expose bearer material in SQL logs")
+	}
 }

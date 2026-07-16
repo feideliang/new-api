@@ -2,6 +2,7 @@ package controller
 
 import (
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/QuantumNous/new-api/types"
@@ -14,16 +15,22 @@ func GetSubscription(c *gin.Context) {
 	var err error
 	var token *model.Token
 	var expiredTime int64
-	if common.DisplayTokenStatEnabled {
+	useTokenStatistics := common.DisplayTokenStatEnabled &&
+		common.GetContextKeyString(c, constant.ContextKeyTokenAuthType) != constant.TokenAuthTypeOAuth
+	if useTokenStatistics {
 		tokenId := c.GetInt("token_id")
 		token, err = model.GetTokenById(tokenId)
-		expiredTime = token.ExpiredTime
-		remainQuota = token.RemainQuota
-		usedQuota = token.UsedQuota
+		if err == nil {
+			expiredTime = token.ExpiredTime
+			remainQuota = token.RemainQuota
+			usedQuota = token.UsedQuota
+		}
 	} else {
 		userId := c.GetInt("id")
 		remainQuota, err = model.GetUserQuota(userId, false)
-		usedQuota, err = model.GetUserUsedQuota(userId)
+		if err == nil {
+			usedQuota, err = model.GetUserUsedQuota(userId)
+		}
 	}
 	if expiredTime <= 0 {
 		expiredTime = 0
@@ -72,10 +79,14 @@ func GetUsage(c *gin.Context) {
 	var quota int
 	var err error
 	var token *model.Token
-	if common.DisplayTokenStatEnabled {
+	useTokenStatistics := common.DisplayTokenStatEnabled &&
+		common.GetContextKeyString(c, constant.ContextKeyTokenAuthType) != constant.TokenAuthTypeOAuth
+	if useTokenStatistics {
 		tokenId := c.GetInt("token_id")
 		token, err = model.GetTokenById(tokenId)
-		quota = token.UsedQuota
+		if err == nil {
+			quota = token.UsedQuota
+		}
 	} else {
 		userId := c.GetInt("id")
 		quota, err = model.GetUserUsedQuota(userId)

@@ -19,6 +19,8 @@ const (
 	ContextKeyTokenModelLimitEnabled ContextKey = "token_model_limit_enabled"
 	ContextKeyTokenModelLimit        ContextKey = "token_model_limit"
 	ContextKeyTokenCrossGroupRetry   ContextKey = "token_cross_group_retry"
+	ContextKeyTokenAuthType          ContextKey = "token_auth_type"
+	ContextKeyOAuthAccessTokenId     ContextKey = "oauth_access_token_id"
 
 	/* channel related keys */
 	ContextKeyChannelId                ContextKey = "channel_id"
@@ -76,4 +78,9 @@ const (
 	// fallback in authHelper (finishAdminAudit) skips its record to avoid
 	// duplicate entries.
 	ContextKeyAuditLogged ContextKey = "audit_logged"
+)
+
+const (
+	TokenAuthTypeAPIToken = "api_token"
+	TokenAuthTypeOAuth    = "oauth"
 )

@@ -14,8 +14,8 @@ import (
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/service"
-	oauthserversvc "github.com/QuantumNous/new-api/service/oauthserver"
 	"github.com/QuantumNous/new-api/service/authz"
+	oauthserversvc "github.com/QuantumNous/new-api/service/oauthserver"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
 	"github.com/QuantumNous/new-api/types"
 
@@ -382,6 +382,16 @@ func TokenAuth() func(c *gin.Context) {
 			rawKey = strings.TrimSpace(rawKey[7:])
 		}
 		rawKey = strings.TrimPrefix(rawKey, "sk-")
+		if isOAuthAccessTokenCandidate(rawKey) {
+			oauthAuth, oauthErr := oauthserversvc.AuthenticateRelayAccessToken(c.Request.Context(), model.DB, rawKey)
+			if oauthErr != nil || oauthAuth == nil {
+				abortWithOpenAiMessage(c, http.StatusUnauthorized,
+					common.TranslateMessage(c, i18n.MsgTokenInvalid))
+				return
+			}
+			setupContextForOAuthToken(c, oauthAuth, rawKey)
+			return
+		}
 
 		token, err := model.ValidateUserToken(key)
 		if token != nil {
@@ -397,56 +407,13 @@ func TokenAuth() func(c *gin.Context) {
 					common.TranslateMessage(c, i18n.MsgDatabaseError))
 				return
 			}
-			// OAuth JWT 兜底：当 tokens 表查不到时，尝试用 OAuth access token 校验
 			oauthAuth, oauthErr := oauthserversvc.AuthenticateRelayAccessToken(c.Request.Context(), model.DB, rawKey)
 			if oauthErr != nil || oauthAuth == nil {
 				abortWithOpenAiMessage(c, http.StatusUnauthorized,
 					common.TranslateMessage(c, i18n.MsgTokenInvalid))
 				return
 			}
-			// OAuth 校验成功，设置上下文
-			c.Set("id", oauthAuth.UserID)
-			c.Set("token_id", oauthAuth.AccessTokenID)
-			c.Set("token_key", rawKey)
-			c.Set("token_name", "OAuth: "+oauthAuth.ClientName)
-			c.Set("token_unlimited_quota", true)
-
-			// 校验 OAuth token 是否包含 relay 所需的 scope
-			hasRelayScope := false
-			for _, scope := range oauthAuth.Scopes {
-				if scope == oauthserversvc.ScopeConnectorsInvoke {
-					hasRelayScope = true
-					break
-				}
-			}
-			if !hasRelayScope {
-				abortWithOpenAiMessage(c, http.StatusUnauthorized,
-					common.TranslateMessage(c, i18n.MsgTokenInvalid))
-				return
-			}
-
-			userCache, ucErr := model.GetUserCache(oauthAuth.UserID)
-			if ucErr != nil {
-				common.SysLog(fmt.Sprintf("TokenAuth OAuth GetUserCache error for user %d: %v", oauthAuth.UserID, ucErr))
-				abortWithOpenAiMessage(c, http.StatusInternalServerError,
-					common.TranslateMessage(c, i18n.MsgDatabaseError))
-				return
-			}
-			if userCache.Status != common.UserStatusEnabled {
-				abortWithOpenAiMessage(c, http.StatusForbidden, common.TranslateMessage(c, i18n.MsgAuthUserBanned))
-				return
-			}
-			userCache.WriteContext(c)
-			userGroup := userCache.Group
-			tokenGroup := userGroup // OAuth token 使用用户默认组
-			if _, ok := service.GetUserUsableGroups(userGroup)[tokenGroup]; !ok {
-				abortWithOpenAiMessage(c, http.StatusForbidden, fmt.Sprintf("无权访问 %s 分组", tokenGroup))
-				return
-			}
-			c.Set("token_group", tokenGroup)
-			common.SetContextKey(c, constant.ContextKeyTokenGroup, tokenGroup)
-			common.SetContextKey(c, constant.ContextKeyTokenCrossGroupRetry, false)
-			common.SetContextKey(c, constant.ContextKeyUsingGroup, tokenGroup)
+			setupContextForOAuthToken(c, oauthAuth, rawKey)
 			return
 		}
 
@@ -508,6 +475,57 @@ func TokenAuth() func(c *gin.Context) {
 	}
 }
 
+func isOAuthAccessTokenCandidate(token string) bool {
+	parts := strings.Split(token, ".")
+	return len(parts) == 3 && parts[0] != "" && parts[1] != "" && parts[2] != ""
+}
+
+func setupContextForOAuthToken(c *gin.Context, oauthAuth *oauthserversvc.RelayAccessTokenAuth, rawKey string) {
+	c.Set("id", oauthAuth.UserID)
+	c.Set("token_id", 0)
+	c.Set("token_key", rawKey)
+	c.Set("token_name", "OAuth: "+oauthAuth.ClientName)
+	c.Set("token_unlimited_quota", true)
+	common.SetContextKey(c, constant.ContextKeyTokenAuthType, constant.TokenAuthTypeOAuth)
+	common.SetContextKey(c, constant.ContextKeyOAuthAccessTokenId, oauthAuth.AccessTokenID)
+
+	hasRelayScope := false
+	for _, scope := range oauthAuth.Scopes {
+		if scope == oauthserversvc.ScopeConnectorsInvoke {
+			hasRelayScope = true
+			break
+		}
+	}
+	if !hasRelayScope {
+		abortWithOpenAiMessage(c, http.StatusUnauthorized,
+			common.TranslateMessage(c, i18n.MsgTokenInvalid))
+		return
+	}
+
+	userCache, err := model.GetUserCache(oauthAuth.UserID)
+	if err != nil {
+		common.SysLog(fmt.Sprintf("TokenAuth OAuth GetUserCache error for user %d: %v", oauthAuth.UserID, err))
+		abortWithOpenAiMessage(c, http.StatusInternalServerError,
+			common.TranslateMessage(c, i18n.MsgDatabaseError))
+		return
+	}
+	if userCache.Status != common.UserStatusEnabled {
+		abortWithOpenAiMessage(c, http.StatusForbidden, common.TranslateMessage(c, i18n.MsgAuthUserBanned))
+		return
+	}
+	userCache.WriteContext(c)
+	userGroup := userCache.Group
+	tokenGroup := userGroup
+	if _, ok := service.GetUserUsableGroups(userGroup)[tokenGroup]; !ok {
+		abortWithOpenAiMessage(c, http.StatusForbidden, fmt.Sprintf("无权访问 %s 分组", tokenGroup))
+		return
+	}
+	c.Set("token_group", tokenGroup)
+	common.SetContextKey(c, constant.ContextKeyTokenGroup, tokenGroup)
+	common.SetContextKey(c, constant.ContextKeyTokenCrossGroupRetry, false)
+	common.SetContextKey(c, constant.ContextKeyUsingGroup, tokenGroup)
+}
+
 func SetupContextForToken(c *gin.Context, token *model.Token, parts ...string) error {
 	if token == nil {
 		return fmt.Errorf("token is nil")
@@ -517,6 +535,7 @@ func SetupContextForToken(c *gin.Context, token *model.Token, parts ...string) e
 	c.Set("token_key", token.Key)
 	c.Set("token_name", token.Name)
 	c.Set("token_unlimited_quota", token.UnlimitedQuota)
+	common.SetContextKey(c, constant.ContextKeyTokenAuthType, constant.TokenAuthTypeAPIToken)
 	if !token.UnlimitedQuota {
 		c.Set("token_quota", token.RemainQuota)
 	}
