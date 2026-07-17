@@ -199,19 +199,32 @@ func ValidateUserToken(key string) (token *Token, err error) {
 	token, err = GetTokenByKey(key, false)
 	if err == nil {
 		if token.Status == common.TokenStatusExhausted ||
-			token.Status == common.TokenStatusExpired ||
 			token.Status != common.TokenStatusEnabled {
 			return token, ErrTokenInvalid
 		}
 		if token.ExpiredTime != -1 && token.ExpiredTime < common.GetTimestamp() {
-			if !common.RedisEnabled {
-				token.Status = common.TokenStatusExpired
-				err := token.SelectUpdate()
-				if err != nil {
-					common.SysLog("failed to update token status" + err.Error())
+			// 尝试以 sk- 拼接 key 重新查找 —— 如果查到说明是 sk- token，自动恢复
+			skKey := "sk-" + key
+			skToken, skErr := GetTokenByKey(skKey, false)
+			if skErr == nil && skToken.Id == token.Id {
+				token.Status = common.TokenStatusEnabled
+				token.ExpiredTime = -1
+				if !common.RedisEnabled {
+					err := token.Update()
+					if err != nil {
+						common.SysLog("failed to restore sk- token: " + err.Error())
+					}
 				}
+			} else {
+				if !common.RedisEnabled {
+					token.Status = common.TokenStatusExpired
+					err := token.SelectUpdate()
+					if err != nil {
+						common.SysLog("failed to update token status" + err.Error())
+					}
+				}
+				return token, ErrTokenInvalid
 			}
-			return token, ErrTokenInvalid
 		}
 		if !token.UnlimitedQuota && token.RemainQuota <= 0 {
 			if !common.RedisEnabled {
