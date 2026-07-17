@@ -99,19 +99,67 @@ func TestOAuthAuthorizeMissingSessionRedirectsToThemeLogin(t *testing.T) {
 }
 
 func TestOAuthAuthorizeLoggedInGETRendersConsentHTML(t *testing.T) {
+	// Given a signed-in user authorizing the built-in Ruijie Codex client.
 	router, _ := setupOAuthServerControllerTest(t)
 	cookieHeader := oauthServerLoginCookie(t, router, 7)
 
+	// When the authorization page is requested.
 	req := httptest.NewRequest(http.MethodGet, "/oauth/authorize?"+validAuthorizeQuery().Encode(), nil)
 	req.Header.Set("Cookie", cookieHeader)
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 
+	// Then the first-party page is concise, branded, and keeps callback transparency.
 	require.Equal(t, http.StatusOK, rec.Code)
 	body := rec.Body.String()
 	require.Contains(t, body, "<form method=\"post\" action=\"/oauth/authorize\">")
-	require.Contains(t, body, "Authorize")
+	require.Contains(t, body, "锐捷TokenHub")
+	require.Contains(t, body, "锐捷Codex 认证")
+	require.Contains(t, body, "授权后，锐捷Codex 将使用你的锐捷TokenHub 账户。")
+	require.Contains(t, body, "<summary>查看认证回调地址</summary>")
 	require.Contains(t, body, "http://localhost:1455/auth/callback")
+	require.Contains(t, body, "name=\"decision\" value=\"approve\">授权</button>")
+	require.NotContains(t, body, "Permissions requested")
+	require.NotContains(t, body, "name=\"decision\" value=\"deny\"")
+	require.NotContains(t, body, "�")
+	require.Equal(t, 1, strings.Count(body, "<button"))
+}
+
+func TestOAuthAuthorizeThirdPartyGETPreservesConsentDetails(t *testing.T) {
+	// Given a signed-in user authorizing a third-party OAuth client.
+	router, db := setupOAuthServerControllerTest(t)
+	client := model.OAuthServerClient{
+		ClientId:      "third-party-client",
+		ClientName:    "第三方工具",
+		Public:        true,
+		RedirectURIs:  model.OAuthServerStringList{"https://third-party.example/callback"},
+		AllowedScopes: model.OAuthServerStringList{"openid", "profile"},
+		Enabled:       true,
+	}
+	require.NoError(t, db.Create(&client).Error)
+	cookieHeader := oauthServerLoginCookie(t, router, 7)
+	query := validAuthorizeQuery()
+	query.Set("client_id", client.ClientId)
+	query.Set("redirect_uri", client.RedirectURIs[0])
+	query.Set("scope", "openid profile")
+
+	// When the authorization page is requested.
+	req := httptest.NewRequest(http.MethodGet, "/oauth/authorize?"+query.Encode(), nil)
+	req.Header.Set("Cookie", cookieHeader)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	// Then permission disclosure and both consent decisions remain available.
+	require.Equal(t, http.StatusOK, rec.Code)
+	body := rec.Body.String()
+	require.Contains(t, body, "授权 第三方工具")
+	require.Contains(t, body, "申请以下权限")
+	require.Contains(t, body, "openid")
+	require.Contains(t, body, "profile")
+	require.Contains(t, body, "https://third-party.example/callback")
+	require.Contains(t, body, "name=\"decision\" value=\"deny\">拒绝</button>")
+	require.Contains(t, body, "name=\"decision\" value=\"approve\">授权</button>")
+	require.Equal(t, 2, strings.Count(body, "<button"))
 }
 
 func TestOAuthAuthorizeMetaRequiresLogin(t *testing.T) {
